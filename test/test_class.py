@@ -15,3 +15,6 @@ test = dict(dataset_size = 40,
 
 am = AdditiveModel(**test)
 am.find_additive_model()
+print(am.get_coef_lambda())
+print(am.get_coef_a())
+print(am.get_coef_c())
