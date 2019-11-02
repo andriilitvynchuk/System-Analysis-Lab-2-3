@@ -1,10 +1,10 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.special import eval_chebyt, eval_hermite, eval_legendre, eval_laguerre
 from scipy.optimize import fmin_cg
 from copy import deepcopy
 from sklearn.linear_model import Ridge as LinearRegression
 from tqdm import tqdm
-
 
 def get_coef(X, y):
     reg = LinearRegression(fit_intercept=False, alpha=0.0001).fit(X, y)
@@ -336,3 +336,23 @@ class AdditiveModel:
             file.write(self.get_final_approximation_t())
             file.write(self.get_final_approximation_polynoms())
             file.write(self.get_final_approximation_polynoms_denorm())
+
+    def get_plot(self, y_number=1, norm=False):
+        ground_truth = self.y[:, y_number - 1]
+        predict = np.dot(self.X_coef_c[y_number - 1], self.coef_c[y_number - 1])
+        if norm:
+            y_min, y_max = self.cache_min_max[f'y{y_number - 1}']
+            ground_truth = ground_truth * (y_max - y_min) + y_min
+            predict = predict * (y_max - y_min) + y_min
+        error = np.mean(np.abs(predict - ground_truth))
+        plt.title(f'Відновлена функціональна залежність з похибкою {error:.6f}')
+        #plt.text(0.7, 0.8, f'Похибка = {error:.6f}')
+        plt.plot(np.arange(1, self.dataset_size + 1),
+                 ground_truth,
+                 label=f'Y{y_number}')
+        plt.plot(np.arange(1, self.dataset_size + 1),
+                 predict,
+                 label='Ф11 + Ф12 + Ф13',
+                 linestyle='--')
+        plt.legend()
+        plt.show()
