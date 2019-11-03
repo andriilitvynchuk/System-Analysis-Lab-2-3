@@ -87,7 +87,7 @@ class AdditiveModel:
         for index in tqdm(range(3)):
             best_score = np.inf
             best_degree = 1
-            for degree in range(1, 6):
+            for degree in range(1, 11):
                 degrees[index] = degree
                 score = self.evaluate_degrees(degrees)
                 if score < best_score:
@@ -324,7 +324,6 @@ class AdditiveModel:
                            f'{self.polynom_degrees[0]} {self.polynom_degrees[1]} {self.polynom_degrees[2]} \n\n')
             file.write(self.get_coef_lambda() + '\n')
             file.write(self.get_coef_a() + '\n')
-            file.write(self.get_coef_c() + '\n')
             file.write(self.get_coef_c() + '\n')
             file.write(self.get_function_theta() + '\n')
             file.write(self.get_function_f_i()+ '\n')

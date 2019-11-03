@@ -2,27 +2,37 @@ import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import *
+import sys
+
+sys.path.append('..')
+from backend import AdditiveModel
+
+
+def my_int(number):
+    try:
+        return int(number)
+    except:
+        return 2
 
 
 class Equation(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.dataset_size = 0
-        self.x_path = ''
-        self.y_path = ''
-        self.x_size = []
-        self.y_size = 0
-        self.b_type = ''
-        self.polynom_type = ''
-        self.polynom_degrees = []
+        self.dataset_size = 40
+        self.x_path = '../data/x.tsv'
+        self.y_path = '../data/y.tsv'
+        self.x_size = [2, 2, 2]
+        self.y_size = 1
+        self.b_type = 'norm'
+        self.polynom_type = 'chebyshev'
+        self.polynom_degrees = [2, 2, 2]
         self.polynom_search = True
-        self.lambda_type = ''
-        self.output_file = ''
+        self.lambda_type = 'separately'
+        self.output_file = '../data/output.txt'
         self.norm_graph = True
         self.y_number = 1
         self.initUI()
-
 
     def initUI(self):
         fontBold = QFont()
@@ -30,17 +40,17 @@ class Equation(QWidget):
 
         topleft = QFrame(self)
         topleft.setFrameShape(QFrame.StyledPanel)
-        topleft.resize(400,400)
+        topleft.resize(400, 400)
         labelData = QLabel("Вихідні дані", topleft)
         labelData.setFont(fontBold)
         labelData.move(2, 1)
         labelAmount = QLabel("Розмір вибірки", topleft)
         labelAmount.move(2, 20)
 
-        #self.choiceAmount = "1"
+        # self.choiceAmount = "1"
 
         size = QComboBox(topleft)
-        size.addItems([str(i) for i in range(0,100)])
+        size.addItems([str(i) for i in range(0, 100)])
         size.move(100, 15)
         size.activated[str].connect(self.sizeData)
 
@@ -66,7 +76,6 @@ class Equation(QWidget):
         save_file.move(180, 75)
         save_file.clicked[bool].connect(self.saveFileDialog)
 
-
         labelOpenY = QLabel("Файл Y", topleft)
         labelOpenY.move(2, 110)
         self.file_y = QLineEdit(topleft)
@@ -83,61 +92,57 @@ class Equation(QWidget):
         labelVector.move(2, 180)
 
         labelx1 = QLabel("Розмірність x1", topleft)
-        labelx1.move(2,200)
+        labelx1.move(2, 200)
         self.x1Array = QLineEdit(topleft)
         self.x1Array.setFixedWidth(35)
         self.x1Array.move(150, 200)
 
         labelx2 = QLabel("Розмірність x2", topleft)
-        labelx2.move(2,230)
+        labelx2.move(2, 230)
         self.x2Array = QLineEdit(topleft)
         self.x2Array.setFixedWidth(35)
         self.x2Array.move(150, 230)
 
         labelx3 = QLabel("Розмірність x3", topleft)
-        labelx3.move(2,260)
+        labelx3.move(2, 260)
         self.x3Array = QLineEdit(topleft)
         self.x3Array.setFixedWidth(35)
         self.x3Array.move(150, 260)
 
         labely = QLabel("Розмірність Y", topleft)
-        labely.move(2,290)
+        labely.move(2, 290)
         self.yArray = QLineEdit(topleft)
         self.yArray.setFixedWidth(35)
         self.yArray.move(150, 290)
 
-
         central = QFrame(self)
         central.setFrameShape(QFrame.StyledPanel)
-        central.resize(400,400)
+        central.resize(400, 400)
 
         labelPolynom = QLabel("Вигляд поліномів", central)
         labelPolynom.setFont(fontBold)
         labelPolynom.move(2, 1)
 
         polynoms = QComboBox(central)
-        polynoms.addItems(["Поліноми Чебишева", "Поліноми Лежандра", 
-            "Поліноми Лаггера", "Поліноми Ерміта"])
+        polynoms.addItems(["Поліноми Чебишева", "Поліноми Лежандра",
+                           "Поліноми Лаггера", "Поліноми Ерміта"])
         polynoms.move(2, 15)
         polynoms.activated[str].connect(self.polynomType)
 
         labelx1_power = QLabel("Для х1", central)
-        labelx1_power.move(2,50)
+        labelx1_power.move(2, 50)
         self.x1_power = QLineEdit(central)
         self.x1_power.setFixedWidth(35)
         self.x1_power.move(100, 45)
-        
 
         labelx2_power = QLabel("Для x2", central)
-        labelx2_power.move(2,80)
+        labelx2_power.move(2, 80)
         self.x2_power = QLineEdit(central)
         self.x2_power.setFixedWidth(35)
         self.x2_power.move(100, 75)
 
-
-
         labelx3_power = QLabel("Для x3", central)
-        labelx3_power.move(2,110)
+        labelx3_power.move(2, 110)
         self.x3_power = QLineEdit(central)
         self.x3_power.setFixedWidth(35)
         self.x3_power.move(100, 105)
@@ -147,11 +152,9 @@ class Equation(QWidget):
         auto_polynom_search.toggle()
         auto_polynom_search.stateChanged.connect(self.polynomicalSearch)
 
-
-
         topright = QFrame(self)
         topright.setFrameShape(QFrame.StyledPanel)
-        topright.resize(400,400)
+        topright.resize(400, 400)
         labelAdditional = QLabel("Додатково", topright)
         labelAdditional.setFont(fontBold)
         labelAdditional.move(2, 1)
@@ -182,11 +185,10 @@ class Equation(QWidget):
         labelNumbY = QLabel("Цільова змінна: ", topright)
         labelNumbY.move(155, 70)
         numbY = QComboBox(topright)
-        numbY.addItems([str(i) for i in range(1,101)])
+        numbY.addItems([str(i) for i in range(1, 101)])
         numbY.move(250, 65)
         numbY.activated[str].connect(self.numb_y)
 
-        
         bottom = QFrame(self)
         bottom.setFrameShape(QFrame.StyledPanel)
 
@@ -206,23 +208,26 @@ class Equation(QWidget):
     def openFileNameDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;Python Files (*.txt)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
+                                                  "All Files (*);;Python Files (*.txt)", options=options)
         if fileName:
             self.file_open.setText(fileName)
-        self.x_path = fileName
+            self.x_path = fileName
 
     def openFileNameDialogY(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","All Files (*);;Python Files (*.txt)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
+                                                  "All Files (*);;Python Files (*.txt)", options=options)
         if fileName:
             self.file_y.setText(fileName)
-        self.y_path = fileName
+            self.y_path = fileName
 
     def saveFileDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","All Files (*);;Text Files (*.txt)", options=options)
+        fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
+                                                  "All Files (*);;Text Files (*.txt)", options=options)
         if fileName:
             self.file_res.setText(fileName)
         self.output_file = fileName
@@ -239,6 +244,8 @@ class Equation(QWidget):
             self.polynom_type = 'laguerre'
         elif 'Ерміта' in type_:
             self.polynom_type = 'hermit'
+        else:
+            self.polynom_type = 'chebyshev'
 
     def polynomicalSearch(self, state):
         if state == Qt.Checked:
@@ -250,8 +257,7 @@ class Equation(QWidget):
         if state == Qt.Checked:
             self.lambda_type = 'separately'
         else:
-            self.find_lambda = 'all'
-        print(self.find_lambda)
+            self.lambda_type = 'all'
 
     def graphNorm(self, state):
         if state == Qt.Checked:
@@ -269,29 +275,40 @@ class Equation(QWidget):
         self.y_number = numb
 
     def execute(self):
-        self.x_size = [int(self.x1Array.text()), int(self.x2Array.text()), int(self.x3Array.text())]
-        self.y_size = [int(self.yArray.text())]
-        self.polynom_degrees = [int(self.x1_power.text()), int(self.x2_power.text()),
-                                int(self.x3_power.text())]
-        attr = {'dataset_size':self.dataset_size,
-                'x_path':self.x_path,'y_path':self.y_path,
-                'x_size':self.x_size,'y_size':self.y_size,
-                'b_type':self.b_type, 'polynom_type':self.polynom_type,
-                'polynom_degrees':self.polynom_degrees, 'polynom_search':self.polynom_search,
-                'lambda_type':self.lambda_type, 'output_file':self.output_file}
-        print("Attributes for execution:")
-        print(attr)
+        self.x_size = [my_int(self.x1Array.text()), my_int(self.x2Array.text()), my_int(self.x3Array.text())]
+        self.y_size = my_int(self.yArray.text())
+        self.polynom_degrees = [my_int(self.x1_power.text()), my_int(self.x2_power.text()),
+                                my_int(self.x3_power.text())]
+        if self.polynom_type == '':
+            self.polynom_type = 'chebyshev'
+        if self.lambda_type == '':
+            self.lambda_type = 'separately'
+        if self.b_type == '':
+            self.b_type = 'norm'
+        if self.dataset_size == 0:
+            self.dataset_size = 40
+
+        attr = {'dataset_size': int(self.dataset_size),
+                'x_path': self.x_path, 'y_path': self.y_path,
+                'x_size': self.x_size, 'y_size': self.y_size,
+                'b_type': self.b_type, 'polynom_type': self.polynom_type,
+                'polynom_degrees': self.polynom_degrees, 'polynom_search': self.polynom_search,
+                'lambda_type': self.lambda_type, 'output_file': self.output_file}
+        # print("Attributes for execution:")
+        # print(attr)
+        self.additive_model = AdditiveModel(**attr)
+        self.additive_model.find_additive_model()
+        self.content = self.additive_model.write_in_file()
+        print(self.content)
 
     def graphic(self):
-        attr = {'norm':self.norm_graph, 'y_number':self.y_number}
-        print("Attributes for graphic:")
-        print(attr)
-
-
+        if self.y_number == '':
+            self.y_number = '1'
+        attr = {'norm': self.norm_graph, 'y_number': int(self.y_number)}
+        self.additive_model.get_plot(**attr)
 
 
 if __name__ == '__main__':
-
     app = QApplication(sys.argv)
     ex = Equation()
     sys.exit(app.exec_())
