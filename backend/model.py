@@ -62,10 +62,10 @@ class AdditiveModel:
     def set_b(self):
         if self.b_type == 'norm':
             self.b = deepcopy(self.y)
-        elif self.b_type == 'min_max':
+        elif self.b_type == 'mean':
             self.b = np.zeros((self.y.shape[0], 1))
             for i in range(self.y.shape[0]):
-                self.b[i, :] = (np.max(self.y[i, :]) + np.min(self.y[i, :])) / 2
+                self.b[i, :] = (np.max(self.y[i, :self.y_size]) + np.min(self.y[i, :self.y_size])) / 2
 
     def evaluate_degrees(self, degrees):
         b_mean = np.mean(self.b, axis=1)
@@ -117,7 +117,6 @@ class AdditiveModel:
         coef_lambda = []
         X_coef_lambda = []
         pointer_x = 0
-        # print('Error for L')
         for i in range(3):
             tmp_X = np.zeros((self.x.shape[0], (self.polynom_degrees[i] + 1) * self.x_size[i]))
             pointer_X = 0
@@ -127,7 +126,6 @@ class AdditiveModel:
                     pointer_X += 1
                 pointer_x += 1
             tmp_coef_lambda = get_coef(tmp_X, b_mean)
-            # print(np.mean(np.abs(b_mean - np.dot(tmp_X, tmp_coef_lambda))))
             coef_lambda.append(tmp_coef_lambda)
             X_coef_lambda.append(tmp_X)
 
@@ -137,7 +135,6 @@ class AdditiveModel:
     def find_coef_a(self):
         coef_a = dict()
         X_coef_a = dict()
-        # print('Errors for A')
         for index in range(self.y_size):
             tmp_y = self.y[:, index]
             coef_a[index] = []
@@ -152,7 +149,6 @@ class AdditiveModel:
                     pointer += self.polynom_degrees[i] + 1
                 tmp_coef_a = get_coef(tmp_X, tmp_y)
 
-                # print(np.mean(np.abs(tmp_y - np.dot(tmp_X, tmp_coef_a))))
                 X_coef_a[index].append(tmp_X)
                 coef_a[index].append(tmp_coef_a)
 
@@ -162,7 +158,6 @@ class AdditiveModel:
     def find_coef_c(self):
         coef_c = dict()
         X_coef_c = dict()
-        # print('Errors for C')
         for index in range(self.y_size):
             tmp_y = self.y[:, index]
             tmp_X = np.zeros((self.X_coef_lambda.shape[0], 3))
@@ -171,7 +166,6 @@ class AdditiveModel:
             tmp_coef_c = get_coef(tmp_X, tmp_y)
             X_coef_c[index] = tmp_X
             coef_c[index] = tmp_coef_c
-        # print(np.mean(np.abs(tmp_y - np.dot(tmp_X, tmp_coef_c))))
 
         self.X_coef_c = X_coef_c
         self.coef_c = coef_c
@@ -240,7 +234,6 @@ class AdditiveModel:
     def get_function_f_i(self):
         string = 'Функції Ф_ij \n'
         for index in range(self.y_size):
-            #string += f'i = {index + 1} \n'
             for i, coef in enumerate(self.coef_a[index]):
                 string += f'Ф{index + 1}{i + 1}(x{i + 1})= '
                 for j in range(len(coef)):
@@ -326,27 +319,34 @@ class AdditiveModel:
 
     def write_in_file(self):
         with open(self.output_file, 'w') as file:
-            file.write(self.get_coef_lambda())
-            file.write(self.get_coef_a())
-            file.write(self.get_coef_c())
-            file.write(self.get_coef_c())
-            file.write(self.get_function_theta())
-            file.write(self.get_function_f_i())
-            file.write(self.get_final_approximation_f())
-            file.write(self.get_final_approximation_t())
-            file.write(self.get_final_approximation_polynoms())
+            if self.polynom_search:
+                file.write(f'Найкращі степені поліномів : '
+                           f'{self.polynom_degrees[0]} {self.polynom_degrees[1]} {self.polynom_degrees[2]} \n\n')
+            file.write(self.get_coef_lambda() + '\n')
+            file.write(self.get_coef_a() + '\n')
+            file.write(self.get_coef_c() + '\n')
+            file.write(self.get_coef_c() + '\n')
+            file.write(self.get_function_theta() + '\n')
+            file.write(self.get_function_f_i()+ '\n')
+            file.write(self.get_final_approximation_f() + '\n')
+            file.write(self.get_final_approximation_t() + '\n')
+            file.write(self.get_final_approximation_polynoms() + '\n')
             file.write(self.get_final_approximation_polynoms_denorm())
 
-    def get_plot(self, y_number=1, norm=False):
+        with open(self.output_file, 'r') as file:
+            content_to_print = file.read()
+
+        return content_to_print
+
+    def get_plot(self, y_number=1, norm=True):
         ground_truth = self.y[:, y_number - 1]
         predict = np.dot(self.X_coef_c[y_number - 1], self.coef_c[y_number - 1])
-        if norm:
+        if not norm:
             y_min, y_max = self.cache_min_max[f'y{y_number - 1}']
             ground_truth = ground_truth * (y_max - y_min) + y_min
             predict = predict * (y_max - y_min) + y_min
         error = np.mean(np.abs(predict - ground_truth))
         plt.title(f'Відновлена функціональна залежність з похибкою {error:.6f}')
-        #plt.text(0.7, 0.8, f'Похибка = {error:.6f}')
         plt.plot(np.arange(1, self.dataset_size + 1),
                  ground_truth,
                  label=f'Y{y_number}')
