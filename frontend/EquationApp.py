@@ -191,6 +191,13 @@ class Equation(QWidget):
 
         bottom = QFrame(self)
         bottom.setFrameShape(QFrame.StyledPanel)
+        self.output = QTextEdit(bottom)
+        self.output.setReadOnly(True)
+        self.output.setLineWrapMode(QTextEdit.NoWrap)
+        self.output.setFixedWidth(1140)
+        self.output.setMinimumHeight(300)
+        #self.output.setMaximumHeight(1000)
+        self.output.move(5,5)
 
         layout = QHBoxLayout()
         for frame in [topleft, central, topright]:
@@ -299,6 +306,8 @@ class Equation(QWidget):
         self.additive_model = AdditiveModel(**attr)
         self.additive_model.find_additive_model()
         self.content = self.additive_model.write_in_file()
+        self.output.setText(self.content)
+
         print(self.content)
 
     def graphic(self):
