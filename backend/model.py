@@ -88,7 +88,7 @@ class AdditiveModel:
         for index in tqdm(range(3)):
             best_score = np.inf
             best_degree = 1
-            for degree in range(1, 16):
+            for degree in range(1, 11):
                 degrees[index] = degree
                 score = self.evaluate_degrees(degrees)
                 if score < best_score:
