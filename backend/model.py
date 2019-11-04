@@ -24,6 +24,7 @@ class AdditiveModel:
         self.dataset_size = dataset_size
         self.x = np.loadtxt(x_path)
         self.y = np.loadtxt(y_path)
+        self.y = self.y.reshape(self.y.shape[0], -1)
         self.x_size = x_size
         self.y_size = y_size
         self.y = self.y[:, :self.y_size]
@@ -87,7 +88,7 @@ class AdditiveModel:
         for index in tqdm(range(3)):
             best_score = np.inf
             best_degree = 1
-            for degree in range(1, 11):
+            for degree in range(1, 16):
                 degrees[index] = degree
                 score = self.evaluate_degrees(degrees)
                 if score < best_score:

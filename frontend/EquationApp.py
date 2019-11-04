@@ -295,7 +295,7 @@ class Equation(QWidget):
                 'polynom_degrees': self.polynom_degrees, 'polynom_search': self.polynom_search,
                 'lambda_type': self.lambda_type, 'output_file': self.output_file}
         # print("Attributes for execution:")
-        # print(attr)
+        print(attr)
         self.additive_model = AdditiveModel(**attr)
         self.additive_model.find_additive_model()
         self.content = self.additive_model.write_in_file()
