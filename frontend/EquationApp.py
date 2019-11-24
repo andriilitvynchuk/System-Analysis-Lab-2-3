@@ -32,6 +32,9 @@ class Equation(QWidget):
         self.output_file = '../data/output.txt'
         self.norm_graph = True
         self.y_number = 1
+        self.use_additive_model = True
+        self.model = None
+        self.content = ''
         self.initUI()
 
     def initUI(self):
@@ -302,11 +305,14 @@ class Equation(QWidget):
                 'polynom_degrees': self.polynom_degrees, 'polynom_search': self.polynom_search,
                 'lambda_type': self.lambda_type, 'output_file': self.output_file}
         # print("Attributes for execution:")
-        print(attr)
-        self.additive_model = AdditiveModel(**attr)
-        #self.additive_model = MultiplyModel(**attr)
-        self.additive_model.find_additive_model()
-        self.content = self.additive_model.write_in_file()
+
+        if self.use_additive_model:
+            self.model = AdditiveModel(**attr)
+        else:
+            self.model = MultiplyModel(**attr)
+
+        self.model.find_additive_model()
+        self.content = self.model.write_in_file()
         self.output.setText(self.content)
 
         print(self.content)
@@ -315,7 +321,7 @@ class Equation(QWidget):
         if self.y_number == '':
             self.y_number = '1'
         attr = {'norm': self.norm_graph, 'y_number': int(self.y_number)}
-        self.additive_model.get_plot(**attr)
+        self.model.get_plot(**attr)
 
 
 if __name__ == '__main__':
