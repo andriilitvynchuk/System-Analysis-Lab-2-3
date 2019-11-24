@@ -1,7 +1,7 @@
 import sys
 
 sys.path.append('..')
-from backend import AdditiveModel
+from backend import AdditiveModel, MultiplyModel
 
 test = dict(dataset_size=40,
             x_path='../data/x.tsv',
@@ -9,14 +9,15 @@ test = dict(dataset_size=40,
             x_size=[2, 2, 2],
             y_size=1,
             b_type='norm',
-            polynom_type='chebyshev',
+            polynom_type='u',
             polynom_degrees=[2, 2, 2],
             polynom_search=True,
             lambda_type='separately',
             output_file='./output.txt')
 
-am = AdditiveModel(**test)
+am = MultiplyModel(**test)
+#am = AdditiveModel(**test)
 am.find_additive_model()
 content = am.write_in_file()
 print(content)
-am.get_plot(norm=False)
+#am.get_plot(norm=True)

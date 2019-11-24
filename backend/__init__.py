@@ -1,1 +1,1 @@
-from .model import AdditiveModel
+from .model import AdditiveModel, MultiplyModel

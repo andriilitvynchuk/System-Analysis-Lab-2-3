@@ -5,7 +5,7 @@ from PyQt5.QtGui import *
 import sys
 
 sys.path.append('..')
-from backend import AdditiveModel
+from backend import AdditiveModel, MultiplyModel
 
 
 def my_int(number):
@@ -304,6 +304,7 @@ class Equation(QWidget):
         # print("Attributes for execution:")
         print(attr)
         self.additive_model = AdditiveModel(**attr)
+        #self.additive_model = MultiplyModel(**attr)
         self.additive_model.find_additive_model()
         self.content = self.additive_model.write_in_file()
         self.output.setText(self.content)
