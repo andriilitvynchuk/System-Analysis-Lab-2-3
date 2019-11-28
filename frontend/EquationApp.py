@@ -35,6 +35,7 @@ class Equation(QWidget):
         self.use_additive_model = True
         self.model = None
         self.content = ''
+        self.model_type = 'multiple'
         self.initUI()
 
     def initUI(self):
@@ -128,7 +129,9 @@ class Equation(QWidget):
 
         polynoms = QComboBox(central)
         polynoms.addItems(["Поліноми Чебишева", "Поліноми Лежандра",
-                           "Поліноми Лаггера", "Поліноми Ерміта"])
+                           "Поліноми Лаггера", "Поліноми Ерміта", 
+                           "Поліноми U", "Поліноми C", "Поліноми S",
+                           "Власний поліном"])
         polynoms.move(2, 15)
         polynoms.activated[str].connect(self.polynomType)
 
@@ -174,14 +177,21 @@ class Equation(QWidget):
         lambda_cb.toggle()
         lambda_cb.stateChanged.connect(self.findLambda)
 
+
+        modes = QComboBox(topright)
+        modes.addItems(["Адитивна модель", "Мультиплікативна модель",
+                           "Власна мультиплікативна модель"])
+        modes.move(80, 100)
+        modes.activated[str].connect(self.modeType)
+
         button_execute = QPushButton('Виконати', topright)
-        button_execute.move(150, 100)
+        button_execute.move(150, 150)
         button_execute.clicked.connect(self.execute)
         button_graph = QPushButton('Графік', topright)
-        button_graph.move(250, 100)
+        button_graph.move(250, 150)
         button_graph.clicked.connect(self.graphic)
         lambda_cb = QCheckBox("Графік у нормованому вигляді", topright)
-        lambda_cb.move(155, 130)
+        lambda_cb.move(155, 180)
         lambda_cb.toggle()
         lambda_cb.stateChanged.connect(self.graphNorm)
 
@@ -254,8 +264,24 @@ class Equation(QWidget):
             self.polynom_type = 'laguerre'
         elif 'Ерміта' in type_:
             self.polynom_type = 'hermit'
+        elif 'U' in type_:
+            self.polynom_type = 'u'
+        elif 'S' in type_:
+            self.polynom_type = 's'
+        elif 'C' in type_:
+            self.polynom_type = 'c'
+        elif 'Власний' in type_:
+            self.polynom_type = 'custom'
         else:
             self.polynom_type = 'chebyshev'
+
+    def modeType(self, type_):
+        if 'Адитивна' in type_:
+            self.model_type = 'additive'
+        elif 'Мультиплікативна' in type_:
+            self.model_type = 'multiple'
+        elif 'Власна мультиплікативна' in type_:
+            self.model_type = 'our_multiple'
 
     def polynomicalSearch(self, state):
         if state == Qt.Checked:
@@ -303,8 +329,10 @@ class Equation(QWidget):
                 'x_size': self.x_size, 'y_size': self.y_size,
                 'b_type': self.b_type, 'polynom_type': self.polynom_type,
                 'polynom_degrees': self.polynom_degrees, 'polynom_search': self.polynom_search,
-                'lambda_type': self.lambda_type, 'output_file': self.output_file}
-        # print("Attributes for execution:")
+                'lambda_type': self.lambda_type,
+                'output_file': self.output_file}
+        print("Attributes for execution:")
+        print(attr)
 
         if self.use_additive_model:
             self.model = AdditiveModel(**attr)
