@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.special import eval_chebyt, eval_hermite, eval_legendre, eval_laguerre
 from copy import deepcopy
 from tqdm import tqdm
 from backend.utils import *
@@ -32,6 +31,8 @@ class AdditiveModel:
             self.polynom_function = eval_c
         elif polynom_type == 's':
             self.polynom_function = eval_s
+        elif polynom_type == 'custom':
+            self.polynom_function = eval_custom
 
         self.polynom_type = polynom_type
         self.b_type = b_type
@@ -283,7 +284,8 @@ class AdditiveModel:
                        laguerre=0.2587,
                        u=0.4310,
                        s=0.3154,
-                       c=0.6421)
+                       c=0.6421,
+                       custom=0.43)
         for index in range(self.y_size):
             string += f'Ф{index + 1}(x1, x2, x3) = '
             pointer = 0
@@ -309,7 +311,8 @@ class AdditiveModel:
                        laguerre=0.2587,
                        u=0.4310,
                        s=0.3154,
-                       c=0.6421)
+                       c=0.6421,
+                       custom=0.43)
         for index in range(self.y_size):
             y_min, y_max = self.cache_min_max[f'y{index}']
             string += f'Ф{index + 1}(x1, x2, x3) = '
@@ -358,7 +361,7 @@ class AdditiveModel:
             ground_truth = ground_truth * (y_max - y_min) + y_min
             predict = predict * (y_max - y_min) + y_min
         error = np.mean(np.abs(predict - ground_truth))
-        plt.title(f'Відновлена функціональна залежність з похибкою {error:.6f}')
+        plt.title(f'Відновлена функціональна залежність для Y{y_number} з похибкою {error:.6f}')
         plt.plot(np.arange(1, self.dataset_size + 1),
                  ground_truth,
                  label=f'Y{y_number}')
@@ -396,6 +399,8 @@ class MultiplyModel:
             self.polynom_function = eval_c
         elif polynom_type == 's':
             self.polynom_function = eval_s
+        elif polynom_type == 'custom':
+            self.polynom_function = eval_custom
 
         self.polynom_type = polynom_type
         self.b_type = b_type
@@ -678,7 +683,7 @@ class MultiplyModel:
             ground_truth = ground_truth * (y_max - y_min) + y_min
             predict = predict * (y_max - y_min) + y_min
         error = np.mean(np.abs(predict - ground_truth))
-        plt.title(f'Відновлена функціональна залежність з похибкою {error:.6f}')
+        plt.title(f'Відновлена функціональна залежність для Y{y_number} з похибкою {error:.6f}')
         plt.plot(np.arange(1, len(ground_truth) + 1),
                  ground_truth,
                  label=f'Y{y_number}')

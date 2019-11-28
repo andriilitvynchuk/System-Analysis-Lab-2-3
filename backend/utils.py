@@ -24,3 +24,7 @@ def eval_c(d, vector):
 def eval_s(d, vector):
     return eval_legendre(d, vector) + 5 * vector ** d
 
+
+def eval_custom(d, vector):
+    return eval_legendre(d, vector) + 5 * vector ** d - 5 * vector ** (1 + d)
+
