@@ -362,10 +362,10 @@ class AdditiveModel:
             predict = predict * (y_max - y_min) + y_min
         error = np.mean(np.abs(predict - ground_truth))
         plt.title(f'Відновлена функціональна залежність для Y{y_number} з похибкою {error:.6f}')
-        plt.plot(np.arange(1, self.dataset_size + 1),
+        plt.plot(np.arange(1, len(predict) + 1),
                  ground_truth,
                  label=f'Y{y_number}')
-        plt.plot(np.arange(1, self.dataset_size + 1),
+        plt.plot(np.arange(1, len(predict) + 1),
                  predict,
                  label='Ф11 + Ф12 + Ф13',
                  linestyle='--')
