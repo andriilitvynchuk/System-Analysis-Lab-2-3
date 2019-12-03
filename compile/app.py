@@ -975,7 +975,7 @@ class CustomModel:
                 string += f'\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}) = '
                 for d in range(self.polynom_degrees[i] + 1):
                     coef = self.coef_lambda[pointer]
-                    string += f'(1 + \u03c6{d}(x{i + 1}{j + 1}))^{coef:.4f}'
+                    string += f'(1 + \u03c6{d}(x{i + 1}{j + 1}))(1 + cos(\u03c6{d}(x{i + 1}{j + 1})))^{coef:.4f}'
                     pointer += 1
                     if d != self.polynom_degrees[i]:
                         string += ' *  '
@@ -989,7 +989,7 @@ class CustomModel:
             for i, coef in enumerate(self.coef_a[index]):
                 string += f'Ф{index + 1}{i + 1}(x{i + 1})= '
                 for j in range(len(coef)):
-                    string += f'(1 + \u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}))^{coef[j]:.4f}'
+                    string += f'(1 + \u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}))(1 + cos(\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1})))^{coef[j]:.4f}'
                     if j != len(coef) - 1:
                         string += ' *  '
                 string += ' - 1 \n'
@@ -1000,7 +1000,7 @@ class CustomModel:
         for index in range(self.y_size):
             string += f'Ф{index + 1}(x1, x2, x3) = '
             for j in range(len(self.coef_c[index])):
-                string += f'(1 + Ф{index + 1}{j + 1}(x{j + 1}))^{self.coef_c[index][j]:.4f}'
+                string += f'(1 + Ф{index + 1}{j + 1}(x{j + 1}))(1 + cos(Ф{index + 1}{j + 1}(x{j + 1})))^{self.coef_c[index][j]:.4f}'
                 if j != len(self.coef_c[index]) - 1:
                     string += ' *  '
             string += ' - 1 \n'
