@@ -1,14 +1,15 @@
 import sys
-import numpy as np
-import matplotlib.pyplot as plt
 from copy import deepcopy
-from tqdm import tqdm
-from PyQt5.QtWidgets import *
+
+import matplotlib.pyplot as plt
+import numpy as np
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import *
-from sklearn.linear_model import Ridge as LinearRegression
+from PyQt5.QtWidgets import *
 from scipy.optimize import fmin_cg
-from scipy.special import eval_chebyt, eval_hermite, eval_legendre, eval_laguerre
+from scipy.special import eval_chebyt, eval_hermite, eval_laguerre, eval_legendre
+from sklearn.linear_model import Ridge as LinearRegression
+from tqdm import tqdm
 
 
 def get_coef(X, y):
@@ -18,7 +19,12 @@ def get_coef(X, y):
 
 
 def get_coef_cg(A, b):
-    coef = fmin_cg(lambda x: np.sum((b - np.dot(A, x)) ** 2), np.ones((A.shape[1])), maxiter=2000, disp=0)
+    coef = fmin_cg(
+        lambda x: np.sum((b - np.dot(A, x)) ** 2),
+        np.ones((A.shape[1])),
+        maxiter=2000,
+        disp=0,
+    )
     return coef
 
 
@@ -38,35 +44,44 @@ def eval_custom(d, vector):
     return eval_legendre(d, vector) + 5 * vector ** d - 5 * vector ** (1 + d)
 
 
-
-
 class AdditiveModel:
-
-    def __init__(self, dataset_size, x_path, y_path, x_size, y_size, b_type, polynom_type, polynom_degrees,
-                 polynom_search, lambda_type, output_file):
+    def __init__(
+        self,
+        dataset_size,
+        x_path,
+        y_path,
+        x_size,
+        y_size,
+        b_type,
+        polynom_type,
+        polynom_degrees,
+        polynom_search,
+        lambda_type,
+        output_file,
+    ):
         self.dataset_size = dataset_size
         self.x = np.loadtxt(x_path)
         self.y = np.loadtxt(y_path)
         self.y = self.y.reshape(self.y.shape[0], -1)
         self.x_size = x_size
         self.y_size = y_size
-        self.y = self.y[:, :self.y_size]
+        self.y = self.y[:, : self.y_size]
 
-        if polynom_type == 'chebyshev':
+        if polynom_type == "chebyshev":
             self.polynom_function = eval_chebyt
-        elif polynom_type == 'hermit':
+        elif polynom_type == "hermit":
             self.polynom_function = eval_hermite
-        elif polynom_type == 'legendre':
+        elif polynom_type == "legendre":
             self.polynom_function = eval_legendre
-        elif polynom_type == 'laguerre':
+        elif polynom_type == "laguerre":
             self.polynom_function = eval_laguerre
-        elif polynom_type == 'u':
+        elif polynom_type == "u":
             self.polynom_function = eval_u
-        elif polynom_type == 'c':
+        elif polynom_type == "c":
             self.polynom_function = eval_c
-        elif polynom_type == 's':
+        elif polynom_type == "s":
             self.polynom_function = eval_s
-        elif polynom_type == 'custom':
+        elif polynom_type == "custom":
             self.polynom_function = eval_custom
 
         self.polynom_type = polynom_type
@@ -90,29 +105,36 @@ class AdditiveModel:
     def norm(self):
         self.cache_min_max = dict()
         for index in range(self.x.shape[1]):
-            key = 'x' + str(index)
+            key = "x" + str(index)
             self.cache_min_max[key] = [self.x[:, index].min(), self.x[:, index].max()]
             self.x[:, index] = (self.x[:, index] - self.cache_min_max[key][0]) / (
-                    self.cache_min_max[key][1] - self.cache_min_max[key][0])
+                self.cache_min_max[key][1] - self.cache_min_max[key][0]
+            )
 
         self.cache_y = deepcopy(self.y)
         for index in range(self.y.shape[1]):
-            key = 'y' + str(index)
+            key = "y" + str(index)
             self.cache_min_max[key] = [self.y[:, index].min(), self.y[:, index].max()]
             self.y[:, index] = (self.y[:, index] - self.cache_min_max[key][0]) / (
-                    self.cache_min_max[key][1] - self.cache_min_max[key][0])
+                self.cache_min_max[key][1] - self.cache_min_max[key][0]
+            )
 
     def set_b(self):
-        if self.b_type == 'norm':
+        if self.b_type == "norm":
             self.b = deepcopy(self.y)
-        elif self.b_type == 'mean':
+        elif self.b_type == "mean":
             self.b = np.zeros((self.y.shape[0], 1))
             for i in range(self.y.shape[0]):
-                self.b[i, :] = (np.max(self.y[i, :self.y_size]) + np.min(self.y[i, :self.y_size])) / 2
+                self.b[i, :] = (
+                    np.max(self.y[i, : self.y_size]) + np.min(self.y[i, : self.y_size])
+                ) / 2
 
     def evaluate_degrees(self, degrees):
         b_mean = np.mean(self.b, axis=1)
-        new_shape_X = (self.x.shape[0], np.sum((np.array(degrees) + 1) * np.array(self.x_size)))
+        new_shape_X = (
+            self.x.shape[0],
+            np.sum((np.array(degrees) + 1) * np.array(self.x_size)),
+        )
         X = np.zeros(new_shape_X)
         pointer_X = 0
         pointer_x = 0
@@ -142,7 +164,10 @@ class AdditiveModel:
 
     def find_coef_lambda_all(self):
         b_mean = np.mean(self.b, axis=1)
-        new_shape_X = (self.x.shape[0], np.sum((np.array(self.polynom_degrees) + 1) * np.array(self.x_size)))
+        new_shape_X = (
+            self.x.shape[0],
+            np.sum((np.array(self.polynom_degrees) + 1) * np.array(self.x_size)),
+        )
         X = np.zeros(new_shape_X)
         pointer_X = 0
         pointer_x = 0
@@ -161,7 +186,9 @@ class AdditiveModel:
         X_coef_lambda = []
         pointer_x = 0
         for i in range(3):
-            tmp_X = np.zeros((self.x.shape[0], (self.polynom_degrees[i] + 1) * self.x_size[i]))
+            tmp_X = np.zeros(
+                (self.x.shape[0], (self.polynom_degrees[i] + 1) * self.x_size[i])
+            )
             pointer_X = 0
             for _ in range(self.x_size[i]):
                 for d in range(self.polynom_degrees[i] + 1):
@@ -186,8 +213,12 @@ class AdditiveModel:
             for i in range(3):
                 tmp_X = np.zeros((self.X_coef_lambda.shape[0], self.x_size[i]))
                 for j in range(self.x_size[i]):
-                    polynom_subset = self.X_coef_lambda[:, pointer:pointer + self.polynom_degrees[i] + 1]
-                    lambda_coef_subset = self.coef_lambda[pointer:pointer + self.polynom_degrees[i] + 1]
+                    polynom_subset = self.X_coef_lambda[
+                        :, pointer : pointer + self.polynom_degrees[i] + 1
+                    ]
+                    lambda_coef_subset = self.coef_lambda[
+                        pointer : pointer + self.polynom_degrees[i] + 1
+                    ]
                     tmp_X[:, j] = np.dot(polynom_subset, lambda_coef_subset)
                     pointer += self.polynom_degrees[i] + 1
                 tmp_coef_a = get_coef(tmp_X, tmp_y)
@@ -220,170 +251,196 @@ class AdditiveModel:
         if self.polynom_search:
             self.find_polynom_degrees()
 
-        if self.lambda_type == 'all':
+        if self.lambda_type == "all":
             self.find_coef_lambda_all()
-        elif self.lambda_type == 'separately':
+        elif self.lambda_type == "separately":
             self.find_coef_lambda_separately()
 
         self.find_coef_a()
         self.find_coef_c()
 
     def get_coef_lambda(self):
-        string = f'Коефіцієнти \u03BB \n'
+        string = f"Коефіцієнти \u03BB \n"
         pointer = 0
         for i in range(3):
             for j in range(self.x_size[i]):
                 for d in range(self.polynom_degrees[i] + 1):
                     coef = self.coef_lambda[pointer]
-                    string += f'\u03BB{i + 1}{j + 1}{d}={coef:.4f}  '
+                    string += f"\u03BB{i + 1}{j + 1}{d}={coef:.4f}  "
                     pointer += 1
-                string += '\n'
+                string += "\n"
         return string
 
     def get_coef_a(self):
-        string = 'Коефіцієнти а \n'
+        string = "Коефіцієнти а \n"
         for index in range(self.y_size):
-            string += f'i = {index + 1} \n'
+            string += f"i = {index + 1} \n"
             for i, coef in enumerate(self.coef_a[index]):
                 for j in range(len(coef)):
-                    string += f'a{i + 1}{j + 1}={coef[j]:.4f} '
-                string += '\n'
+                    string += f"a{i + 1}{j + 1}={coef[j]:.4f} "
+                string += "\n"
         return string
 
     def get_coef_c(self):
-        string = 'Коефіцієнти с \n'
+        string = "Коефіцієнти с \n"
         for index in range(self.y_size):
-            string += f'i = {index + 1} \n'
+            string += f"i = {index + 1} \n"
             for j in range(len(self.coef_c[index])):
-                string += f'c{j + 1}={self.coef_c[index][j]:.4f} '
-            string += '\n'
+                string += f"c{j + 1}={self.coef_c[index][j]:.4f} "
+            string += "\n"
         return string
 
     def get_function_theta(self):
-        string = 'Функції \u03A8 \n'
+        string = "Функції \u03A8 \n"
         pointer = 0
         for i in range(3):
             for j in range(self.x_size[i]):
-                string += f'\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}) = '
+                string += f"\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}) = "
                 for d in range(self.polynom_degrees[i] + 1):
                     coef = self.coef_lambda[pointer]
-                    string += f'{coef:.4f}*T{d}(x{i + 1}{j + 1})'
+                    string += f"{coef:.4f}*T{d}(x{i + 1}{j + 1})"
                     pointer += 1
                     if d != self.polynom_degrees[i]:
-                        string += '+  '
-                string += '\n'
+                        string += "+  "
+                string += "\n"
         return string
 
     def get_function_f_i(self):
-        string = 'Функції Ф_ij \n'
+        string = "Функції Ф_ij \n"
         for index in range(self.y_size):
             for i, coef in enumerate(self.coef_a[index]):
-                string += f'Ф{index + 1}{i + 1}(x{i + 1})= '
+                string += f"Ф{index + 1}{i + 1}(x{i + 1})= "
                 for j in range(len(coef)):
-                    string += f'{coef[j]:.4f}*\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1})'
+                    string += f"{coef[j]:.4f}*\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1})"
                     if j != len(coef) - 1:
-                        string += '+  '
-                string += '\n'
+                        string += "+  "
+                string += "\n"
         return string
 
     def get_final_approximation_f(self):
-        string = 'Одержані функції через Ф \n'
+        string = "Одержані функції через Ф \n"
         for index in range(self.y_size):
-            string += f'Ф{index + 1}(x1, x2, x3) = '
+            string += f"Ф{index + 1}(x1, x2, x3) = "
             for j in range(len(self.coef_c[index])):
-                string += f'{self.coef_c[index][j]:.4f}*Ф{index + 1}{j + 1}(x{j + 1})'
+                string += f"{self.coef_c[index][j]:.4f}*Ф{index + 1}{j + 1}(x{j + 1})"
                 if j != len(self.coef_c[index]) - 1:
-                    string += '+  '
-            string += '\n'
+                    string += "+  "
+            string += "\n"
         return string
 
     def get_final_approximation_t(self):
-        string = 'Одержані функції через поліноми \n'
+        string = "Одержані функції через поліноми \n"
         for index in range(self.y_size):
-            string += f'Ф{index + 1}(x1, x2, x3) = '
+            string += f"Ф{index + 1}(x1, x2, x3) = "
             pointer = 0
             for i in range(3):
                 for j in range(self.x_size[i]):
                     for d in range(self.polynom_degrees[i] + 1):
-                        coef = self.coef_lambda[pointer] * self.coef_a[index][i][j] * self.coef_c[index][i]
-                        string += f'{coef:.4f}*T{d}(x{i + 1}{j + 1})+  '
+                        coef = (
+                            self.coef_lambda[pointer]
+                            * self.coef_a[index][i][j]
+                            * self.coef_c[index][i]
+                        )
+                        string += f"{coef:.4f}*T{d}(x{i + 1}{j + 1})+  "
                         pointer += 1
-            string = string[:-3] + '\n'
+            string = string[:-3] + "\n"
         return string
 
     def get_final_approximation_polynoms(self):
-        string = 'Одержані функції у вигляді многочленів(у нормованому вигляді) \n'
-        mapping = dict(chebyshev=0.4310,
-                       hermit=0.3154,
-                       legendre=0.6421,
-                       laguerre=0.2587,
-                       u=0.4310,
-                       s=0.3154,
-                       c=0.6421,
-                       custom=0.43)
+        string = "Одержані функції у вигляді многочленів(у нормованому вигляді) \n"
+        mapping = dict(
+            chebyshev=0.4310,
+            hermit=0.3154,
+            legendre=0.6421,
+            laguerre=0.2587,
+            u=0.4310,
+            s=0.3154,
+            c=0.6421,
+            custom=0.43,
+        )
         for index in range(self.y_size):
-            string += f'Ф{index + 1}(x1, x2, x3) = '
+            string += f"Ф{index + 1}(x1, x2, x3) = "
             pointer = 0
             bias = 0
             for i in range(3):
                 for j in range(self.x_size[i]):
                     for d in range(self.polynom_degrees[i] + 1):
                         if d != 0:
-                            coef = self.coef_lambda[pointer] * self.coef_a[index][i][j] * self.coef_c[index][i]
+                            coef = (
+                                self.coef_lambda[pointer]
+                                * self.coef_a[index][i][j]
+                                * self.coef_c[index][i]
+                            )
                             coef *= 1 / mapping[self.polynom_type]
-                            string += f'{coef:.4f}*x{i + 1}{j + 1}^{d} +  '
+                            string += f"{coef:.4f}*x{i + 1}{j + 1}^{d} +  "
                         else:
-                            bias += self.coef_lambda[pointer] * self.coef_a[index][i][j] * self.coef_c[index][i]
+                            bias += (
+                                self.coef_lambda[pointer]
+                                * self.coef_a[index][i][j]
+                                * self.coef_c[index][i]
+                            )
                         pointer += 1
-            string += f'{bias:.4f} \n'
+            string += f"{bias:.4f} \n"
         return string
 
     def get_final_approximation_polynoms_denorm(self):
-        string = 'Одержані функції у вигляді многочленів(у відтвореному вигляді) \n'
-        mapping = dict(chebyshev=0.4310,
-                       hermit=0.3154,
-                       legendre=0.6421,
-                       laguerre=0.2587,
-                       u=0.4310,
-                       s=0.3154,
-                       c=0.6421,
-                       custom=0.43)
+        string = "Одержані функції у вигляді многочленів(у відтвореному вигляді) \n"
+        mapping = dict(
+            chebyshev=0.4310,
+            hermit=0.3154,
+            legendre=0.6421,
+            laguerre=0.2587,
+            u=0.4310,
+            s=0.3154,
+            c=0.6421,
+            custom=0.43,
+        )
         for index in range(self.y_size):
-            y_min, y_max = self.cache_min_max[f'y{index}']
-            string += f'Ф{index + 1}(x1, x2, x3) = '
+            y_min, y_max = self.cache_min_max[f"y{index}"]
+            string += f"Ф{index + 1}(x1, x2, x3) = "
             pointer = 0
             bias = 0
             for i in range(3):
                 for j in range(self.x_size[i]):
                     for d in range(self.polynom_degrees[i] + 1):
                         if d != 0:
-                            coef = self.coef_lambda[pointer] * self.coef_a[index][i][j] * self.coef_c[index][i]
+                            coef = (
+                                self.coef_lambda[pointer]
+                                * self.coef_a[index][i][j]
+                                * self.coef_c[index][i]
+                            )
                             coef *= 1 / mapping[self.polynom_type]
                             coef *= y_max - y_min
-                            string += f'{coef:.4f}*x{i + 1}{j + 1}^{d} +  '
+                            string += f"{coef:.4f}*x{i + 1}{j + 1}^{d} +  "
                         else:
-                            bias += self.coef_lambda[pointer] * self.coef_a[index][i][j] * self.coef_c[index][i]
+                            bias += (
+                                self.coef_lambda[pointer]
+                                * self.coef_a[index][i][j]
+                                * self.coef_c[index][i]
+                            )
                         pointer += 1
             bias += y_min
-            string += f'{bias:.4f} \n'
+            string += f"{bias:.4f} \n"
         return string
 
     def write_in_file(self):
-        with open(self.output_file, 'w') as file:
+        with open(self.output_file, "w") as file:
             if self.polynom_search:
-                file.write(f'Найкращі степені поліномів : '
-                           f'{self.polynom_degrees[0]} {self.polynom_degrees[1]} {self.polynom_degrees[2]} \n\n')
-            file.write(self.get_coef_lambda() + '\n')
-            file.write(self.get_coef_a() + '\n')
-            file.write(self.get_coef_c() + '\n')
-            file.write(self.get_function_theta() + '\n')
-            file.write(self.get_function_f_i() + '\n')
-            file.write(self.get_final_approximation_f() + '\n')
-            file.write(self.get_final_approximation_t() + '\n')
-            file.write(self.get_final_approximation_polynoms() + '\n')
+                file.write(
+                    f"Найкращі степені поліномів : "
+                    f"{self.polynom_degrees[0]} {self.polynom_degrees[1]} {self.polynom_degrees[2]} \n\n"
+                )
+            file.write(self.get_coef_lambda() + "\n")
+            file.write(self.get_coef_a() + "\n")
+            file.write(self.get_coef_c() + "\n")
+            file.write(self.get_function_theta() + "\n")
+            file.write(self.get_function_f_i() + "\n")
+            file.write(self.get_final_approximation_f() + "\n")
+            file.write(self.get_final_approximation_t() + "\n")
+            file.write(self.get_final_approximation_polynoms() + "\n")
             file.write(self.get_final_approximation_polynoms_denorm())
 
-        with open(self.output_file, 'r') as file:
+        with open(self.output_file, "r") as file:
             content_to_print = file.read()
 
         return content_to_print
@@ -392,49 +449,62 @@ class AdditiveModel:
         ground_truth = self.y[:, y_number - 1]
         predict = np.dot(self.X_coef_c[y_number - 1], self.coef_c[y_number - 1])
         if not norm:
-            y_min, y_max = self.cache_min_max[f'y{y_number - 1}']
+            y_min, y_max = self.cache_min_max[f"y{y_number - 1}"]
             ground_truth = ground_truth * (y_max - y_min) + y_min
             predict = predict * (y_max - y_min) + y_min
         error = np.mean(np.abs(predict - ground_truth))
-        plt.title(f'Відновлена функціональна залежність для Y{y_number} з похибкою {error:.6f}')
-        plt.plot(np.arange(1, len(predict) + 1),
-                 ground_truth,
-                 label=f'Y{y_number}')
-        plt.plot(np.arange(1, len(predict) + 1),
-                 predict,
-                 label='Ф11 + Ф12 + Ф13',
-                 linestyle='--')
+        plt.title(
+            f"Відновлена функціональна залежність для Y{y_number} з похибкою {error:.6f}"
+        )
+        plt.plot(np.arange(1, len(predict) + 1), ground_truth, label=f"Y{y_number}")
+        plt.plot(
+            np.arange(1, len(predict) + 1),
+            predict,
+            label="Ф11 + Ф12 + Ф13",
+            linestyle="--",
+        )
         plt.legend()
         plt.show()
 
 
 class MultiplyModel:
-
-    def __init__(self, dataset_size, x_path, y_path, x_size, y_size, b_type, polynom_type, polynom_degrees,
-                 polynom_search, lambda_type, output_file):
+    def __init__(
+        self,
+        dataset_size,
+        x_path,
+        y_path,
+        x_size,
+        y_size,
+        b_type,
+        polynom_type,
+        polynom_degrees,
+        polynom_search,
+        lambda_type,
+        output_file,
+    ):
         self.dataset_size = dataset_size
         self.x = np.loadtxt(x_path)
         self.y = np.loadtxt(y_path)
         self.y = self.y.reshape(self.y.shape[0], -1)
         self.x_size = x_size
         self.y_size = y_size
-        self.y = self.y[:, :self.y_size]
+        self.y = self.y[:, : self.y_size]
 
-        if polynom_type == 'chebyshev':
+        if polynom_type == "chebyshev":
             self.polynom_function = eval_chebyt
-        elif polynom_type == 'hermit':
+        elif polynom_type == "hermit":
             self.polynom_function = eval_hermite
-        elif polynom_type == 'legendre':
+        elif polynom_type == "legendre":
             self.polynom_function = eval_legendre
-        elif polynom_type == 'laguerre':
+        elif polynom_type == "laguerre":
             self.polynom_function = eval_laguerre
-        elif polynom_type == 'u':
+        elif polynom_type == "u":
             self.polynom_function = eval_u
-        elif polynom_type == 'c':
+        elif polynom_type == "c":
             self.polynom_function = eval_c
-        elif polynom_type == 's':
+        elif polynom_type == "s":
             self.polynom_function = eval_s
-        elif polynom_type == 'custom':
+        elif polynom_type == "custom":
             self.polynom_function = eval_custom
 
         self.polynom_type = polynom_type
@@ -458,31 +528,38 @@ class MultiplyModel:
     def norm(self):
         self.cache_min_max = dict()
         for index in range(self.x.shape[1]):
-            key = 'x' + str(index)
+            key = "x" + str(index)
             self.cache_min_max[key] = [self.x[:, index].min(), self.x[:, index].max()]
             self.x[:, index] = (self.x[:, index] - self.cache_min_max[key][0]) / (
-                    self.cache_min_max[key][1] - self.cache_min_max[key][0])
+                self.cache_min_max[key][1] - self.cache_min_max[key][0]
+            )
 
         self.cache_y = deepcopy(self.y)
         for index in range(self.y.shape[1]):
-            key = 'y' + str(index)
+            key = "y" + str(index)
             self.cache_min_max[key] = [self.y[:, index].min(), self.y[:, index].max()]
             self.y[:, index] = (self.y[:, index] - self.cache_min_max[key][0]) / (
-                    self.cache_min_max[key][1] - self.cache_min_max[key][0])
+                self.cache_min_max[key][1] - self.cache_min_max[key][0]
+            )
 
     def set_b(self):
-        if self.b_type == 'norm':
+        if self.b_type == "norm":
             self.b = deepcopy(self.y)
-        elif self.b_type == 'mean':
+        elif self.b_type == "mean":
             self.b = np.zeros((self.y.shape[0], 1))
             for i in range(self.y.shape[0]):
-                self.b[i, :] = (np.max(self.y[i, :self.y_size]) + np.min(self.y[i, :self.y_size])) / 2
+                self.b[i, :] = (
+                    np.max(self.y[i, : self.y_size]) + np.min(self.y[i, : self.y_size])
+                ) / 2
 
     def evaluate_degrees(self, degrees):
         b_mean = np.mean(self.b, axis=1)
         # Multiply
         b_mean = np.log(b_mean + 1)
-        new_shape_X = (self.x.shape[0], np.sum((np.array(degrees) + 1) * np.array(self.x_size)))
+        new_shape_X = (
+            self.x.shape[0],
+            np.sum((np.array(degrees) + 1) * np.array(self.x_size)),
+        )
         X = np.zeros(new_shape_X)
         pointer_X = 0
         pointer_x = 0
@@ -490,8 +567,12 @@ class MultiplyModel:
             for _ in range(self.x_size[i]):
                 for d in range(degrees[i] + 1):
                     # Multiply
-                    #print(1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9)
-                    X[:, pointer_X] = np.log(np.abs(1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9))
+                    # print(1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9)
+                    X[:, pointer_X] = np.log(
+                        np.abs(
+                            1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9
+                        )
+                    )
                     pointer_X += 1
                 pointer_x += 1
         score = np.abs((b_mean - np.dot(X, get_coef(X, b_mean)))).mean()
@@ -516,7 +597,10 @@ class MultiplyModel:
         b_mean = np.mean(self.b, axis=1)
         # Multiply
         b_mean = np.log(b_mean + 1)
-        new_shape_X = (self.x.shape[0], np.sum((np.array(self.polynom_degrees) + 1) * np.array(self.x_size)))
+        new_shape_X = (
+            self.x.shape[0],
+            np.sum((np.array(self.polynom_degrees) + 1) * np.array(self.x_size)),
+        )
         X = np.zeros(new_shape_X)
         pointer_X = 0
         pointer_x = 0
@@ -524,7 +608,11 @@ class MultiplyModel:
             for _ in range(self.x_size[i]):
                 for d in range(self.polynom_degrees[i] + 1):
                     # Multiply
-                    X[:, pointer_X] = np.log(np.abs(1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9))
+                    X[:, pointer_X] = np.log(
+                        np.abs(
+                            1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9
+                        )
+                    )
                     pointer_X += 1
                 pointer_x += 1
         self.coef_lambda = get_coef(X, b_mean)
@@ -538,12 +626,18 @@ class MultiplyModel:
         X_coef_lambda = []
         pointer_x = 0
         for i in range(3):
-            tmp_X = np.zeros((self.x.shape[0], (self.polynom_degrees[i] + 1) * self.x_size[i]))
+            tmp_X = np.zeros(
+                (self.x.shape[0], (self.polynom_degrees[i] + 1) * self.x_size[i])
+            )
             pointer_X = 0
             for _ in range(self.x_size[i]):
                 for d in range(self.polynom_degrees[i] + 1):
                     # Multiply
-                    tmp_X[:, pointer_X] = np.log(np.abs(1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9))
+                    tmp_X[:, pointer_X] = np.log(
+                        np.abs(
+                            1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9
+                        )
+                    )
                     pointer_X += 1
                 pointer_x += 1
             tmp_coef_lambda = get_coef(tmp_X, b_mean)
@@ -566,8 +660,12 @@ class MultiplyModel:
             for i in range(3):
                 tmp_X = np.zeros((self.X_coef_lambda.shape[0], self.x_size[i]))
                 for j in range(self.x_size[i]):
-                    polynom_subset = self.X_coef_lambda[:, pointer:pointer + self.polynom_degrees[i] + 1]
-                    lambda_coef_subset = self.coef_lambda[pointer:pointer + self.polynom_degrees[i] + 1]
+                    polynom_subset = self.X_coef_lambda[
+                        :, pointer : pointer + self.polynom_degrees[i] + 1
+                    ]
+                    lambda_coef_subset = self.coef_lambda[
+                        pointer : pointer + self.polynom_degrees[i] + 1
+                    ]
                     tmp_X[:, j] = np.dot(polynom_subset, lambda_coef_subset)
                     pointer += self.polynom_degrees[i] + 1
                 tmp_coef_a = get_coef(tmp_X, tmp_y)
@@ -602,161 +700,186 @@ class MultiplyModel:
         if self.polynom_search:
             self.find_polynom_degrees()
 
-        if self.lambda_type == 'all':
+        if self.lambda_type == "all":
             self.find_coef_lambda_all()
-        elif self.lambda_type == 'separately':
+        elif self.lambda_type == "separately":
             self.find_coef_lambda_separately()
 
         self.find_coef_a()
         self.find_coef_c()
 
     def get_coef_lambda(self):
-        string = f'Коефіцієнти \u03BB \n'
+        string = f"Коефіцієнти \u03BB \n"
         pointer = 0
         for i in range(3):
             for j in range(self.x_size[i]):
                 for d in range(self.polynom_degrees[i] + 1):
                     coef = self.coef_lambda[pointer]
-                    string += f'\u03BB{i + 1}{j + 1}{d}={coef:.4f}  '
+                    string += f"\u03BB{i + 1}{j + 1}{d}={coef:.4f}  "
                     pointer += 1
-                string += '\n'
+                string += "\n"
         return string
 
     def get_coef_a(self):
-        string = 'Коефіцієнти а \n'
+        string = "Коефіцієнти а \n"
         for index in range(self.y_size):
-            string += f'i = {index + 1} \n'
+            string += f"i = {index + 1} \n"
             for i, coef in enumerate(self.coef_a[index]):
                 for j in range(len(coef)):
-                    string += f'a{i + 1}{j + 1}={coef[j]:.4f} '
-                string += '\n'
+                    string += f"a{i + 1}{j + 1}={coef[j]:.4f} "
+                string += "\n"
         return string
 
     def get_coef_c(self):
-        string = 'Коефіцієнти с \n'
+        string = "Коефіцієнти с \n"
         for index in range(self.y_size):
-            string += f'i = {index + 1} \n'
+            string += f"i = {index + 1} \n"
             for j in range(len(self.coef_c[index])):
-                string += f'c{j + 1}={self.coef_c[index][j]:.4f} '
-            string += '\n'
+                string += f"c{j + 1}={self.coef_c[index][j]:.4f} "
+            string += "\n"
         return string
 
     def get_function_theta(self):
-        string = 'Функції \u03A8 \n'
+        string = "Функції \u03A8 \n"
         pointer = 0
         for i in range(3):
             for j in range(self.x_size[i]):
-                string += f'\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}) = '
+                string += f"\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}) = "
                 for d in range(self.polynom_degrees[i] + 1):
                     coef = self.coef_lambda[pointer]
-                    string += f'(1 + \u03c6{d}(x{i + 1}{j + 1}))^{coef:.4f}'
+                    string += f"(1 + \u03c6{d}(x{i + 1}{j + 1}))^{coef:.4f}"
                     pointer += 1
                     if d != self.polynom_degrees[i]:
-                        string += ' *  '
-                string += ' - 1 \n'
+                        string += " *  "
+                string += " - 1 \n"
 
         return string
 
     def get_function_f_i(self):
-        string = 'Функції Ф_ij \n'
+        string = "Функції Ф_ij \n"
         for index in range(self.y_size):
             for i, coef in enumerate(self.coef_a[index]):
-                string += f'Ф{index + 1}{i + 1}(x{i + 1})= '
+                string += f"Ф{index + 1}{i + 1}(x{i + 1})= "
                 for j in range(len(coef)):
-                    string += f'(1 + \u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}))^{coef[j]:.4f}'
+                    string += (
+                        f"(1 + \u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}))^{coef[j]:.4f}"
+                    )
                     if j != len(coef) - 1:
-                        string += ' *  '
-                string += ' - 1 \n'
+                        string += " *  "
+                string += " - 1 \n"
         return string
 
     def get_final_approximation_f(self):
-        string = 'Одержані функції через Ф \n'
+        string = "Одержані функції через Ф \n"
         for index in range(self.y_size):
-            string += f'Ф{index + 1}(x1, x2, x3) = '
+            string += f"Ф{index + 1}(x1, x2, x3) = "
             for j in range(len(self.coef_c[index])):
-                string += f'(1 + Ф{index + 1}{j + 1}(x{j + 1}))^{self.coef_c[index][j]:.4f}'
+                string += (
+                    f"(1 + Ф{index + 1}{j + 1}(x{j + 1}))^{self.coef_c[index][j]:.4f}"
+                )
                 if j != len(self.coef_c[index]) - 1:
-                    string += ' *  '
-            string += ' - 1 \n'
+                    string += " *  "
+            string += " - 1 \n"
         return string
 
     def get_final_approximation_polynoms_denorm(self):
-        string = 'Одержані функції через Ф у відтвореному вигляді\n'
+        string = "Одержані функції через Ф у відтвореному вигляді\n"
         for index in range(self.y_size):
-            key = f'y{index}'
-            string += f'Ф{index + 1}(x1, x2, x3) = {(self.cache_min_max[key][1] - self.cache_min_max[key][0]):.4f} * '
+            key = f"y{index}"
+            string += f"Ф{index + 1}(x1, x2, x3) = {(self.cache_min_max[key][1] - self.cache_min_max[key][0]):.4f} * "
             for j in range(len(self.coef_c[index])):
-                string += f'(1 + Ф{index + 1}{j + 1}(x{j + 1}))^{self.coef_c[index][j]:.4f}'
+                string += (
+                    f"(1 + Ф{index + 1}{j + 1}(x{j + 1}))^{self.coef_c[index][j]:.4f}"
+                )
                 if j != len(self.coef_c[index]) - 1:
-                    string += ' *  '
-            string += f' + {self.cache_min_max[key][0] - 1} \n'
+                    string += " *  "
+            string += f" + {self.cache_min_max[key][0] - 1} \n"
         return string
 
     def write_in_file(self):
-        with open(self.output_file, 'w') as file:
+        with open(self.output_file, "w") as file:
             if self.polynom_search:
-                file.write(f'Найкращі степені поліномів : '
-                           f'{self.polynom_degrees[0]} {self.polynom_degrees[1]} {self.polynom_degrees[2]} \n\n')
+                file.write(
+                    f"Найкращі степені поліномів : "
+                    f"{self.polynom_degrees[0]} {self.polynom_degrees[1]} {self.polynom_degrees[2]} \n\n"
+                )
             # file.write(self.get_coef_lambda() + '\n')
             # file.write(self.get_coef_a() + '\n')
             # file.write(self.get_coef_c() + '\n')
-            file.write(self.get_function_theta() + '\n')
-            file.write(self.get_function_f_i() + '\n')
-            file.write(self.get_final_approximation_f() + '\n')
+            file.write(self.get_function_theta() + "\n")
+            file.write(self.get_function_f_i() + "\n")
+            file.write(self.get_final_approximation_f() + "\n")
             file.write(self.get_final_approximation_polynoms_denorm())
 
-        with open(self.output_file, 'r') as file:
+        with open(self.output_file, "r") as file:
             content_to_print = file.read()
 
         return content_to_print
 
     def get_plot(self, y_number=1, norm=True):
         ground_truth = self.y[:, y_number - 1]
-        predict = np.exp(np.dot(self.X_coef_c[y_number - 1], self.coef_c[y_number - 1])) - 1
+        predict = (
+            np.exp(np.dot(self.X_coef_c[y_number - 1], self.coef_c[y_number - 1])) - 1
+        )
         if not norm:
-            y_min, y_max = self.cache_min_max[f'y{y_number - 1}']
+            y_min, y_max = self.cache_min_max[f"y{y_number - 1}"]
             ground_truth = ground_truth * (y_max - y_min) + y_min
             predict = predict * (y_max - y_min) + y_min
         error = np.mean(np.abs(predict - ground_truth))
-        plt.title(f'Відновлена функціональна залежність для Y{y_number} з похибкою {error:.6f}')
-        plt.plot(np.arange(1, len(ground_truth) + 1),
-                 ground_truth,
-                 label=f'Y{y_number}')
-        plt.plot(np.arange(1, len(ground_truth) + 1),
-                 predict,
-                 label='Ф11 + Ф12 + Ф13',
-                 linestyle='--')
+        plt.title(
+            f"Відновлена функціональна залежність для Y{y_number} з похибкою {error:.6f}"
+        )
+        plt.plot(
+            np.arange(1, len(ground_truth) + 1), ground_truth, label=f"Y{y_number}"
+        )
+        plt.plot(
+            np.arange(1, len(ground_truth) + 1),
+            predict,
+            label="Ф11 + Ф12 + Ф13",
+            linestyle="--",
+        )
         plt.legend()
         plt.show()
 
 
 class CustomModel:
-
-    def __init__(self, dataset_size, x_path, y_path, x_size, y_size, b_type, polynom_type, polynom_degrees,
-                 polynom_search, lambda_type, output_file):
+    def __init__(
+        self,
+        dataset_size,
+        x_path,
+        y_path,
+        x_size,
+        y_size,
+        b_type,
+        polynom_type,
+        polynom_degrees,
+        polynom_search,
+        lambda_type,
+        output_file,
+    ):
         self.dataset_size = dataset_size
         self.x = np.loadtxt(x_path)
         self.y = np.loadtxt(y_path)
         self.y = self.y.reshape(self.y.shape[0], -1)
         self.x_size = x_size
         self.y_size = y_size
-        self.y = self.y[:, :self.y_size]
+        self.y = self.y[:, : self.y_size]
 
-        if polynom_type == 'chebyshev':
+        if polynom_type == "chebyshev":
             self.polynom_function = eval_chebyt
-        elif polynom_type == 'hermit':
+        elif polynom_type == "hermit":
             self.polynom_function = eval_hermite
-        elif polynom_type == 'legendre':
+        elif polynom_type == "legendre":
             self.polynom_function = eval_legendre
-        elif polynom_type == 'laguerre':
+        elif polynom_type == "laguerre":
             self.polynom_function = eval_laguerre
-        elif polynom_type == 'u':
+        elif polynom_type == "u":
             self.polynom_function = eval_u
-        elif polynom_type == 'c':
+        elif polynom_type == "c":
             self.polynom_function = eval_c
-        elif polynom_type == 's':
+        elif polynom_type == "s":
             self.polynom_function = eval_s
-        elif polynom_type == 'custom':
+        elif polynom_type == "custom":
             self.polynom_function = eval_custom
 
         self.polynom_type = polynom_type
@@ -780,31 +903,38 @@ class CustomModel:
     def norm(self):
         self.cache_min_max = dict()
         for index in range(self.x.shape[1]):
-            key = 'x' + str(index)
+            key = "x" + str(index)
             self.cache_min_max[key] = [self.x[:, index].min(), self.x[:, index].max()]
             self.x[:, index] = (self.x[:, index] - self.cache_min_max[key][0]) / (
-                    self.cache_min_max[key][1] - self.cache_min_max[key][0])
+                self.cache_min_max[key][1] - self.cache_min_max[key][0]
+            )
 
         self.cache_y = deepcopy(self.y)
         for index in range(self.y.shape[1]):
-            key = 'y' + str(index)
+            key = "y" + str(index)
             self.cache_min_max[key] = [self.y[:, index].min(), self.y[:, index].max()]
             self.y[:, index] = (self.y[:, index] - self.cache_min_max[key][0]) / (
-                    self.cache_min_max[key][1] - self.cache_min_max[key][0])
+                self.cache_min_max[key][1] - self.cache_min_max[key][0]
+            )
 
     def set_b(self):
-        if self.b_type == 'norm':
+        if self.b_type == "norm":
             self.b = deepcopy(self.y)
-        elif self.b_type == 'mean':
+        elif self.b_type == "mean":
             self.b = np.zeros((self.y.shape[0], 1))
             for i in range(self.y.shape[0]):
-                self.b[i, :] = (np.max(self.y[i, :self.y_size]) + np.min(self.y[i, :self.y_size])) / 2
+                self.b[i, :] = (
+                    np.max(self.y[i, : self.y_size]) + np.min(self.y[i, : self.y_size])
+                ) / 2
 
     def evaluate_degrees(self, degrees):
         b_mean = np.mean(self.b, axis=1)
         # Multiply
         b_mean = np.log(b_mean + 1)
-        new_shape_X = (self.x.shape[0], np.sum((np.array(degrees) + 1) * np.array(self.x_size)))
+        new_shape_X = (
+            self.x.shape[0],
+            np.sum((np.array(degrees) + 1) * np.array(self.x_size)),
+        )
         X = np.zeros(new_shape_X)
         pointer_X = 0
         pointer_x = 0
@@ -812,9 +942,15 @@ class CustomModel:
             for _ in range(self.x_size[i]):
                 for d in range(degrees[i] + 1):
                     # Multiply
-                    #print(1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9)
-                    X[:, pointer_X] = np.log(np.abs(1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9))
-                    X[:, pointer_X] += np.log(1 + np.cos(self.polynom_function(d, self.x[:, pointer_x])))
+                    # print(1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9)
+                    X[:, pointer_X] = np.log(
+                        np.abs(
+                            1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9
+                        )
+                    )
+                    X[:, pointer_X] += np.log(
+                        1 + np.cos(self.polynom_function(d, self.x[:, pointer_x]))
+                    )
                     pointer_X += 1
                 pointer_x += 1
         score = np.abs((b_mean - np.dot(X, get_coef(X, b_mean)))).mean()
@@ -839,7 +975,10 @@ class CustomModel:
         b_mean = np.mean(self.b, axis=1)
         # Multiply
         b_mean = np.log(b_mean + 1)
-        new_shape_X = (self.x.shape[0], np.sum((np.array(self.polynom_degrees) + 1) * np.array(self.x_size)))
+        new_shape_X = (
+            self.x.shape[0],
+            np.sum((np.array(self.polynom_degrees) + 1) * np.array(self.x_size)),
+        )
         X = np.zeros(new_shape_X)
         pointer_X = 0
         pointer_x = 0
@@ -847,8 +986,14 @@ class CustomModel:
             for _ in range(self.x_size[i]):
                 for d in range(self.polynom_degrees[i] + 1):
                     # Multiply
-                    X[:, pointer_X] = np.log(np.abs(1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9))
-                    X[:, pointer_X] += np.log(1 + np.cos(self.polynom_function(d, self.x[:, pointer_x])))
+                    X[:, pointer_X] = np.log(
+                        np.abs(
+                            1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9
+                        )
+                    )
+                    X[:, pointer_X] += np.log(
+                        1 + np.cos(self.polynom_function(d, self.x[:, pointer_x]))
+                    )
                     pointer_X += 1
                 pointer_x += 1
         self.coef_lambda = get_coef(X, b_mean)
@@ -862,13 +1007,21 @@ class CustomModel:
         X_coef_lambda = []
         pointer_x = 0
         for i in range(3):
-            tmp_X = np.zeros((self.x.shape[0], (self.polynom_degrees[i] + 1) * self.x_size[i]))
+            tmp_X = np.zeros(
+                (self.x.shape[0], (self.polynom_degrees[i] + 1) * self.x_size[i])
+            )
             pointer_X = 0
             for _ in range(self.x_size[i]):
                 for d in range(self.polynom_degrees[i] + 1):
                     # Multiply
-                    tmp_X[:, pointer_X] = np.log(np.abs(1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9))
-                    tmp_X[:, pointer_X] += np.log(1 + np.cos(self.polynom_function(d, self.x[:, pointer_x])))
+                    tmp_X[:, pointer_X] = np.log(
+                        np.abs(
+                            1 + self.polynom_function(d, self.x[:, pointer_x]) + 1e-9
+                        )
+                    )
+                    tmp_X[:, pointer_X] += np.log(
+                        1 + np.cos(self.polynom_function(d, self.x[:, pointer_x]))
+                    )
                     pointer_X += 1
                 pointer_x += 1
             tmp_coef_lambda = get_coef(tmp_X, b_mean)
@@ -891,8 +1044,12 @@ class CustomModel:
             for i in range(3):
                 tmp_X = np.zeros((self.X_coef_lambda.shape[0], self.x_size[i]))
                 for j in range(self.x_size[i]):
-                    polynom_subset = self.X_coef_lambda[:, pointer:pointer + self.polynom_degrees[i] + 1]
-                    lambda_coef_subset = self.coef_lambda[pointer:pointer + self.polynom_degrees[i] + 1]
+                    polynom_subset = self.X_coef_lambda[
+                        :, pointer : pointer + self.polynom_degrees[i] + 1
+                    ]
+                    lambda_coef_subset = self.coef_lambda[
+                        pointer : pointer + self.polynom_degrees[i] + 1
+                    ]
                     tmp_X[:, j] = np.dot(polynom_subset, lambda_coef_subset)
                     tmp_X[:, j] += np.log(1 + 0.001 * np.cos(np.exp(tmp_X[:, j]) - 1))
                     pointer += self.polynom_degrees[i] + 1
@@ -928,130 +1085,140 @@ class CustomModel:
         if self.polynom_search:
             self.find_polynom_degrees()
 
-        if self.lambda_type == 'all':
+        if self.lambda_type == "all":
             self.find_coef_lambda_all()
-        elif self.lambda_type == 'separately':
+        elif self.lambda_type == "separately":
             self.find_coef_lambda_separately()
 
         self.find_coef_a()
         self.find_coef_c()
 
     def get_coef_lambda(self):
-        string = f'Коефіцієнти \u03BB \n'
+        string = f"Коефіцієнти \u03BB \n"
         pointer = 0
         for i in range(3):
             for j in range(self.x_size[i]):
                 for d in range(self.polynom_degrees[i] + 1):
                     coef = self.coef_lambda[pointer]
-                    string += f'\u03BB{i + 1}{j + 1}{d}={coef:.4f}  '
+                    string += f"\u03BB{i + 1}{j + 1}{d}={coef:.4f}  "
                     pointer += 1
-                string += '\n'
+                string += "\n"
         return string
 
     def get_coef_a(self):
-        string = 'Коефіцієнти а \n'
+        string = "Коефіцієнти а \n"
         for index in range(self.y_size):
-            string += f'i = {index + 1} \n'
+            string += f"i = {index + 1} \n"
             for i, coef in enumerate(self.coef_a[index]):
                 for j in range(len(coef)):
-                    string += f'a{i + 1}{j + 1}={coef[j]:.4f} '
-                string += '\n'
+                    string += f"a{i + 1}{j + 1}={coef[j]:.4f} "
+                string += "\n"
         return string
 
     def get_coef_c(self):
-        string = 'Коефіцієнти с \n'
+        string = "Коефіцієнти с \n"
         for index in range(self.y_size):
-            string += f'i = {index + 1} \n'
+            string += f"i = {index + 1} \n"
             for j in range(len(self.coef_c[index])):
-                string += f'c{j + 1}={self.coef_c[index][j]:.4f} '
-            string += '\n'
+                string += f"c{j + 1}={self.coef_c[index][j]:.4f} "
+            string += "\n"
         return string
 
     def get_function_theta(self):
-        string = 'Функції \u03A8 \n'
+        string = "Функції \u03A8 \n"
         pointer = 0
         for i in range(3):
             for j in range(self.x_size[i]):
-                string += f'\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}) = '
+                string += f"\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}) = "
                 for d in range(self.polynom_degrees[i] + 1):
                     coef = self.coef_lambda[pointer]
-                    string += f'(1 + \u03c6{d}(x{i + 1}{j + 1}))(1 + cos(\u03c6{d}(x{i + 1}{j + 1})))^{coef:.4f}'
+                    string += f"(1 + \u03c6{d}(x{i + 1}{j + 1}))(1 + cos(\u03c6{d}(x{i + 1}{j + 1})))^{coef:.4f}"
                     pointer += 1
                     if d != self.polynom_degrees[i]:
-                        string += ' *  '
-                string += ' - 1 \n'
+                        string += " *  "
+                string += " - 1 \n"
 
         return string
 
     def get_function_f_i(self):
-        string = 'Функції Ф_ij \n'
+        string = "Функції Ф_ij \n"
         for index in range(self.y_size):
             for i, coef in enumerate(self.coef_a[index]):
-                string += f'Ф{index + 1}{i + 1}(x{i + 1})= '
+                string += f"Ф{index + 1}{i + 1}(x{i + 1})= "
                 for j in range(len(coef)):
-                    string += f'(1 + \u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}))(1 + cos(\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1})))^{coef[j]:.4f}'
+                    string += f"(1 + \u03A8{i + 1}{j + 1}(x{i + 1}{j + 1}))(1 + cos(\u03A8{i + 1}{j + 1}(x{i + 1}{j + 1})))^{coef[j]:.4f}"
                     if j != len(coef) - 1:
-                        string += ' *  '
-                string += ' - 1 \n'
+                        string += " *  "
+                string += " - 1 \n"
         return string
 
     def get_final_approximation_f(self):
-        string = 'Одержані функції через Ф \n'
+        string = "Одержані функції через Ф \n"
         for index in range(self.y_size):
-            string += f'Ф{index + 1}(x1, x2, x3) = '
+            string += f"Ф{index + 1}(x1, x2, x3) = "
             for j in range(len(self.coef_c[index])):
-                string += f'(1 + Ф{index + 1}{j + 1}(x{j + 1}))(1 + cos(Ф{index + 1}{j + 1}(x{j + 1})))^{self.coef_c[index][j]:.4f}'
+                string += f"(1 + Ф{index + 1}{j + 1}(x{j + 1}))(1 + cos(Ф{index + 1}{j + 1}(x{j + 1})))^{self.coef_c[index][j]:.4f}"
                 if j != len(self.coef_c[index]) - 1:
-                    string += ' *  '
-            string += ' - 1 \n'
+                    string += " *  "
+            string += " - 1 \n"
         return string
 
     def get_final_approximation_polynoms_denorm(self):
-        string = 'Одержані функції через Ф у відтвореному вигляді\n'
+        string = "Одержані функції через Ф у відтвореному вигляді\n"
         for index in range(self.y_size):
-            key = f'y{index}'
-            string += f'Ф{index + 1}(x1, x2, x3) = {(self.cache_min_max[key][1] - self.cache_min_max[key][0]):.4f} * '
+            key = f"y{index}"
+            string += f"Ф{index + 1}(x1, x2, x3) = {(self.cache_min_max[key][1] - self.cache_min_max[key][0]):.4f} * "
             for j in range(len(self.coef_c[index])):
-                string += f'(1 + Ф{index + 1}{j + 1}(x{j + 1}))^{self.coef_c[index][j]:.4f}'
+                string += (
+                    f"(1 + Ф{index + 1}{j + 1}(x{j + 1}))^{self.coef_c[index][j]:.4f}"
+                )
                 if j != len(self.coef_c[index]) - 1:
-                    string += ' *  '
-            string += f' + {self.cache_min_max[key][0] - 1} \n'
+                    string += " *  "
+            string += f" + {self.cache_min_max[key][0] - 1} \n"
         return string
 
     def write_in_file(self):
-        with open(self.output_file, 'w') as file:
+        with open(self.output_file, "w") as file:
             if self.polynom_search:
-                file.write(f'Найкращі степені поліномів : '
-                           f'{self.polynom_degrees[0]} {self.polynom_degrees[1]} {self.polynom_degrees[2]} \n\n')
+                file.write(
+                    f"Найкращі степені поліномів : "
+                    f"{self.polynom_degrees[0]} {self.polynom_degrees[1]} {self.polynom_degrees[2]} \n\n"
+                )
             # file.write(self.get_coef_lambda() + '\n')
             # file.write(self.get_coef_a() + '\n')
             # file.write(self.get_coef_c() + '\n')
-            file.write(self.get_function_theta() + '\n')
-            file.write(self.get_function_f_i() + '\n')
-            file.write(self.get_final_approximation_f() + '\n')
+            file.write(self.get_function_theta() + "\n")
+            file.write(self.get_function_f_i() + "\n")
+            file.write(self.get_final_approximation_f() + "\n")
             file.write(self.get_final_approximation_polynoms_denorm())
 
-        with open(self.output_file, 'r') as file:
+        with open(self.output_file, "r") as file:
             content_to_print = file.read()
 
         return content_to_print
 
     def get_plot(self, y_number=1, norm=True):
         ground_truth = self.y[:, y_number - 1]
-        predict = np.exp(np.dot(self.X_coef_c[y_number - 1], self.coef_c[y_number - 1])) - 1
+        predict = (
+            np.exp(np.dot(self.X_coef_c[y_number - 1], self.coef_c[y_number - 1])) - 1
+        )
         if not norm:
-            y_min, y_max = self.cache_min_max[f'y{y_number - 1}']
+            y_min, y_max = self.cache_min_max[f"y{y_number - 1}"]
             ground_truth = ground_truth * (y_max - y_min) + y_min
             predict = predict * (y_max - y_min) + y_min
         error = np.mean(np.abs(predict - ground_truth))
-        plt.title(f'Відновлена функціональна залежність для Y{y_number} з похибкою {error:.6f}')
-        plt.plot(np.arange(1, len(ground_truth) + 1),
-                 ground_truth,
-                 label=f'Y{y_number}')
-        plt.plot(np.arange(1, len(ground_truth) + 1),
-                 predict,
-                 label='Ф11 + Ф12 + Ф13',
-                 linestyle='--')
+        plt.title(
+            f"Відновлена функціональна залежність для Y{y_number} з похибкою {error:.6f}"
+        )
+        plt.plot(
+            np.arange(1, len(ground_truth) + 1), ground_truth, label=f"Y{y_number}"
+        )
+        plt.plot(
+            np.arange(1, len(ground_truth) + 1),
+            predict,
+            label="Ф11 + Ф12 + Ф13",
+            linestyle="--",
+        )
         plt.legend()
         plt.show()
 
@@ -1064,26 +1231,25 @@ def my_int(number):
 
 
 class Equation(QWidget):
-
     def __init__(self):
         super().__init__()
         self.dataset_size = 40
-        self.x_path = '../data/x.tsv'
-        self.y_path = '../data/y.tsv'
+        self.x_path = "../data/x.tsv"
+        self.y_path = "../data/y.tsv"
         self.x_size = [2, 2, 2]
         self.y_size = 1
-        self.b_type = 'norm'
-        self.polynom_type = 'chebyshev'
+        self.b_type = "norm"
+        self.polynom_type = "chebyshev"
         self.polynom_degrees = [2, 2, 2]
         self.polynom_search = True
-        self.lambda_type = 'separately'
-        self.output_file = '../data/output.txt'
+        self.lambda_type = "separately"
+        self.output_file = "../data/output.txt"
         self.norm_graph = True
         self.y_number = 1
         self.use_additive_model = True
         self.model = None
-        self.content = ''
-        self.model_type = 'multiple'
+        self.content = ""
+        self.model_type = "multiple"
         self.initUI()
 
     def initUI(self):
@@ -1112,7 +1278,7 @@ class Equation(QWidget):
         self.file_open.setFixedWidth(40)
         self.file_open.move(140, 50)
 
-        open_file = QPushButton('...', topleft)
+        open_file = QPushButton("...", topleft)
         open_file.setCheckable(True)
         open_file.move(180, 45)
         open_file.clicked[bool].connect(self.openFileNameDialog)
@@ -1123,7 +1289,7 @@ class Equation(QWidget):
         self.file_res.setFixedWidth(40)
         self.file_res.move(140, 80)
 
-        save_file = QPushButton('...', topleft)
+        save_file = QPushButton("...", topleft)
         save_file.setCheckable(True)
         save_file.move(180, 75)
         save_file.clicked[bool].connect(self.saveFileDialog)
@@ -1134,7 +1300,7 @@ class Equation(QWidget):
         self.file_y.setFixedWidth(40)
         self.file_y.move(140, 110)
 
-        save_y = QPushButton('...', topleft)
+        save_y = QPushButton("...", topleft)
         save_y.setCheckable(True)
         save_y.move(180, 105)
         save_y.clicked[bool].connect(self.openFileNameDialogY)
@@ -1176,10 +1342,18 @@ class Equation(QWidget):
         labelPolynom.move(2, 1)
 
         polynoms = QComboBox(central)
-        polynoms.addItems(["Поліноми Чебишева", "Поліноми Лежандра",
-                           "Поліноми Лаггера", "Поліноми Ерміта",
-                           "Поліноми U", "Поліноми C", "Поліноми S",
-                           "Власний поліном"])
+        polynoms.addItems(
+            [
+                "Поліноми Чебишева",
+                "Поліноми Лежандра",
+                "Поліноми Лаггера",
+                "Поліноми Ерміта",
+                "Поліноми U",
+                "Поліноми C",
+                "Поліноми S",
+                "Власний поліном",
+            ]
+        )
         polynoms.move(2, 15)
         polynoms.activated[str].connect(self.polynomType)
 
@@ -1225,17 +1399,21 @@ class Equation(QWidget):
         lambda_cb.toggle()
         lambda_cb.stateChanged.connect(self.findLambda)
 
-
         modes = QComboBox(topright)
-        modes.addItems(["Адитивна модель", "Мультиплікативна модель",
-                           "Власна мультиплікативна модель"])
+        modes.addItems(
+            [
+                "Адитивна модель",
+                "Мультиплікативна модель",
+                "Власна мультиплікативна модель",
+            ]
+        )
         modes.move(80, 100)
         modes.activated[str].connect(self.modeType)
 
-        button_execute = QPushButton('Виконати', topright)
+        button_execute = QPushButton("Виконати", topright)
         button_execute.move(150, 150)
         button_execute.clicked.connect(self.execute)
-        button_graph = QPushButton('Графік', topright)
+        button_graph = QPushButton("Графік", topright)
         button_graph.move(250, 150)
         button_graph.clicked.connect(self.graphic)
         lambda_cb = QCheckBox("Графік у нормованому вигляді", topright)
@@ -1257,8 +1435,8 @@ class Equation(QWidget):
         self.output.setLineWrapMode(QTextEdit.NoWrap)
         self.output.setFixedWidth(1140)
         self.output.setMinimumHeight(300)
-        #self.output.setMaximumHeight(1000)
-        self.output.move(5,5)
+        # self.output.setMaximumHeight(1000)
+        self.output.move(5, 5)
 
         layout = QHBoxLayout()
         for frame in [topleft, central, topright]:
@@ -1270,14 +1448,19 @@ class Equation(QWidget):
         self.setLayout(verticalLayout)
 
         self.setGeometry(300, 300, 1200, 1200)
-        self.setWindowTitle('Відтворення функціональних залежностей в адитивній формі')
+        self.setWindowTitle("Відтворення функціональних залежностей в адитивній формі")
         self.show()
 
     def openFileNameDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
-                                                  "All Files (*);;Python Files (*.txt)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(
+            self,
+            "QFileDialog.getOpenFileName()",
+            "",
+            "All Files (*);;Python Files (*.txt)",
+            options=options,
+        )
         if fileName:
             self.file_open.setText(fileName)
             self.x_path = fileName
@@ -1285,8 +1468,13 @@ class Equation(QWidget):
     def openFileNameDialogY(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
-                                                  "All Files (*);;Python Files (*.txt)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(
+            self,
+            "QFileDialog.getOpenFileName()",
+            "",
+            "All Files (*);;Python Files (*.txt)",
+            options=options,
+        )
         if fileName:
             self.file_y.setText(fileName)
             self.y_path = fileName
@@ -1294,8 +1482,13 @@ class Equation(QWidget):
     def saveFileDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
-                                                  "All Files (*);;Text Files (*.txt)", options=options)
+        fileName, _ = QFileDialog.getSaveFileName(
+            self,
+            "QFileDialog.getSaveFileName()",
+            "",
+            "All Files (*);;Text Files (*.txt)",
+            options=options,
+        )
         if fileName:
             self.file_res.setText(fileName)
         self.output_file = fileName
@@ -1304,32 +1497,32 @@ class Equation(QWidget):
         self.dataset_size = int(size)
 
     def polynomType(self, type_):
-        if 'Чебишева' in type_:
-            self.polynom_type = 'chebyshev'
-        elif 'Лежандра' in type_:
-            self.polynom_type = 'legendre'
-        elif 'Лаггера' in type_:
-            self.polynom_type = 'laguerre'
-        elif 'Ерміта' in type_:
-            self.polynom_type = 'hermit'
-        elif 'U' in type_:
-            self.polynom_type = 'u'
-        elif 'S' in type_:
-            self.polynom_type = 's'
-        elif 'C' in type_:
-            self.polynom_type = 'c'
-        elif 'Власний' in type_:
-            self.polynom_type = 'custom'
+        if "Чебишева" in type_:
+            self.polynom_type = "chebyshev"
+        elif "Лежандра" in type_:
+            self.polynom_type = "legendre"
+        elif "Лаггера" in type_:
+            self.polynom_type = "laguerre"
+        elif "Ерміта" in type_:
+            self.polynom_type = "hermit"
+        elif "U" in type_:
+            self.polynom_type = "u"
+        elif "S" in type_:
+            self.polynom_type = "s"
+        elif "C" in type_:
+            self.polynom_type = "c"
+        elif "Власний" in type_:
+            self.polynom_type = "custom"
         else:
-            self.polynom_type = 'chebyshev'
+            self.polynom_type = "chebyshev"
 
     def modeType(self, type_):
-        if 'Адитивна' in type_:
-            self.model_type = 'additive'
-        elif 'Мультиплікативна' in type_:
-            self.model_type = 'multiple'
-        elif 'Власна мультиплікативна' in type_:
-            self.model_type = 'our_multiple'
+        if "Адитивна" in type_:
+            self.model_type = "additive"
+        elif "Мультиплікативна" in type_:
+            self.model_type = "multiple"
+        elif "Власна мультиплікативна" in type_:
+            self.model_type = "our_multiple"
 
     def polynomicalSearch(self, state):
         if state == Qt.Checked:
@@ -1339,9 +1532,9 @@ class Equation(QWidget):
 
     def findLambda(self, state):
         if state == Qt.Checked:
-            self.lambda_type = 'separately'
+            self.lambda_type = "separately"
         else:
-            self.lambda_type = 'all'
+            self.lambda_type = "all"
 
     def graphNorm(self, state):
         if state == Qt.Checked:
@@ -1350,35 +1543,48 @@ class Equation(QWidget):
             self.norm_graph = False
 
     def typeB(self, type_):
-        if 'Середнє' in type_:
-            self.b_type = 'mean'
+        if "Середнє" in type_:
+            self.b_type = "mean"
         else:
-            self.b_type = 'norm'
+            self.b_type = "norm"
 
     def numb_y(self, numb):
         self.y_number = numb
 
     def execute(self):
-        self.x_size = [my_int(self.x1Array.text()), my_int(self.x2Array.text()), my_int(self.x3Array.text())]
+        self.x_size = [
+            my_int(self.x1Array.text()),
+            my_int(self.x2Array.text()),
+            my_int(self.x3Array.text()),
+        ]
         self.y_size = my_int(self.yArray.text())
-        self.polynom_degrees = [my_int(self.x1_power.text()), my_int(self.x2_power.text()),
-                                my_int(self.x3_power.text())]
-        if self.polynom_type == '':
-            self.polynom_type = 'chebyshev'
-        if self.lambda_type == '':
-            self.lambda_type = 'separately'
-        if self.b_type == '':
-            self.b_type = 'norm'
+        self.polynom_degrees = [
+            my_int(self.x1_power.text()),
+            my_int(self.x2_power.text()),
+            my_int(self.x3_power.text()),
+        ]
+        if self.polynom_type == "":
+            self.polynom_type = "chebyshev"
+        if self.lambda_type == "":
+            self.lambda_type = "separately"
+        if self.b_type == "":
+            self.b_type = "norm"
         if self.dataset_size == 0:
             self.dataset_size = 40
 
-        attr = {'dataset_size': int(self.dataset_size),
-                'x_path': self.x_path, 'y_path': self.y_path,
-                'x_size': self.x_size, 'y_size': self.y_size,
-                'b_type': self.b_type, 'polynom_type': self.polynom_type,
-                'polynom_degrees': self.polynom_degrees, 'polynom_search': self.polynom_search,
-                'lambda_type': self.lambda_type,
-                'output_file': self.output_file}
+        attr = {
+            "dataset_size": int(self.dataset_size),
+            "x_path": self.x_path,
+            "y_path": self.y_path,
+            "x_size": self.x_size,
+            "y_size": self.y_size,
+            "b_type": self.b_type,
+            "polynom_type": self.polynom_type,
+            "polynom_degrees": self.polynom_degrees,
+            "polynom_search": self.polynom_search,
+            "lambda_type": self.lambda_type,
+            "output_file": self.output_file,
+        }
         print("Attributes for execution:")
         print(attr)
 
@@ -1396,14 +1602,13 @@ class Equation(QWidget):
         print(self.content)
 
     def graphic(self):
-        if self.y_number == '':
-            self.y_number = '1'
-        attr = {'norm': self.norm_graph, 'y_number': int(self.y_number)}
+        if self.y_number == "":
+            self.y_number = "1"
+        attr = {"norm": self.norm_graph, "y_number": int(self.y_number)}
         self.model.get_plot(**attr)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     ex = Equation()
     sys.exit(app.exec_())
-

@@ -1,11 +1,13 @@
 import sys
-from PyQt5.QtWidgets import *
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import *
-import sys
+from PyQt5.QtWidgets import *
 
-sys.path.append('..')
-from backend import AdditiveModel, MultiplyModel, CustomModel
+
+sys.path.append("..")
+if True:
+    from backend import AdditiveModel, CustomModel, MultiplyModel
 
 
 def my_int(number):
@@ -16,26 +18,25 @@ def my_int(number):
 
 
 class Equation(QWidget):
-
     def __init__(self):
         super().__init__()
         self.dataset_size = 40
-        self.x_path = '../data/x.tsv'
-        self.y_path = '../data/y.tsv'
+        self.x_path = "../data/x.tsv"
+        self.y_path = "../data/y.tsv"
         self.x_size = [2, 2, 2]
         self.y_size = 1
-        self.b_type = 'norm'
-        self.polynom_type = 'chebyshev'
+        self.b_type = "norm"
+        self.polynom_type = "chebyshev"
         self.polynom_degrees = [2, 2, 2]
         self.polynom_search = True
-        self.lambda_type = 'separately'
-        self.output_file = '../data/output.txt'
+        self.lambda_type = "separately"
+        self.output_file = "../data/output.txt"
         self.norm_graph = True
         self.y_number = 1
         self.use_additive_model = True
         self.model = None
-        self.content = ''
-        self.model_type = 'multiple'
+        self.content = ""
+        self.model_type = "multiple"
         self.initUI()
 
     def initUI(self):
@@ -64,7 +65,7 @@ class Equation(QWidget):
         self.file_open.setFixedWidth(40)
         self.file_open.move(140, 50)
 
-        open_file = QPushButton('...', topleft)
+        open_file = QPushButton("...", topleft)
         open_file.setCheckable(True)
         open_file.move(180, 45)
         open_file.clicked[bool].connect(self.openFileNameDialog)
@@ -75,7 +76,7 @@ class Equation(QWidget):
         self.file_res.setFixedWidth(40)
         self.file_res.move(140, 80)
 
-        save_file = QPushButton('...', topleft)
+        save_file = QPushButton("...", topleft)
         save_file.setCheckable(True)
         save_file.move(180, 75)
         save_file.clicked[bool].connect(self.saveFileDialog)
@@ -86,7 +87,7 @@ class Equation(QWidget):
         self.file_y.setFixedWidth(40)
         self.file_y.move(140, 110)
 
-        save_y = QPushButton('...', topleft)
+        save_y = QPushButton("...", topleft)
         save_y.setCheckable(True)
         save_y.move(180, 105)
         save_y.clicked[bool].connect(self.openFileNameDialogY)
@@ -128,10 +129,18 @@ class Equation(QWidget):
         labelPolynom.move(2, 1)
 
         polynoms = QComboBox(central)
-        polynoms.addItems(["Поліноми Чебишева", "Поліноми Лежандра",
-                           "Поліноми Лаггера", "Поліноми Ерміта", 
-                           "Поліноми U", "Поліноми C", "Поліноми S",
-                           "Власний поліном"])
+        polynoms.addItems(
+            [
+                "Поліноми Чебишева",
+                "Поліноми Лежандра",
+                "Поліноми Лаггера",
+                "Поліноми Ерміта",
+                "Поліноми U",
+                "Поліноми C",
+                "Поліноми S",
+                "Власний поліном",
+            ]
+        )
         polynoms.move(2, 15)
         polynoms.activated[str].connect(self.polynomType)
 
@@ -177,17 +186,21 @@ class Equation(QWidget):
         lambda_cb.toggle()
         lambda_cb.stateChanged.connect(self.findLambda)
 
-
         modes = QComboBox(topright)
-        modes.addItems(["Адитивна модель", "Мультиплікативна модель",
-                           "Власна мультиплікативна модель"])
+        modes.addItems(
+            [
+                "Адитивна модель",
+                "Мультиплікативна модель",
+                "Власна мультиплікативна модель",
+            ]
+        )
         modes.move(80, 100)
         modes.activated[str].connect(self.modeType)
 
-        button_execute = QPushButton('Виконати', topright)
+        button_execute = QPushButton("Виконати", topright)
         button_execute.move(150, 150)
         button_execute.clicked.connect(self.execute)
-        button_graph = QPushButton('Графік', topright)
+        button_graph = QPushButton("Графік", topright)
         button_graph.move(250, 150)
         button_graph.clicked.connect(self.graphic)
         lambda_cb = QCheckBox("Графік у нормованому вигляді", topright)
@@ -209,8 +222,8 @@ class Equation(QWidget):
         self.output.setLineWrapMode(QTextEdit.NoWrap)
         self.output.setFixedWidth(1140)
         self.output.setMinimumHeight(300)
-        #self.output.setMaximumHeight(1000)
-        self.output.move(5,5)
+        # self.output.setMaximumHeight(1000)
+        self.output.move(5, 5)
 
         layout = QHBoxLayout()
         for frame in [topleft, central, topright]:
@@ -222,14 +235,19 @@ class Equation(QWidget):
         self.setLayout(verticalLayout)
 
         self.setGeometry(300, 300, 1200, 1200)
-        self.setWindowTitle('Відтворення функціональних залежностей в адитивній формі')
+        self.setWindowTitle("Відтворення функціональних залежностей в адитивній формі")
         self.show()
 
     def openFileNameDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
-                                                  "All Files (*);;Python Files (*.txt)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(
+            self,
+            "QFileDialog.getOpenFileName()",
+            "",
+            "All Files (*);;Python Files (*.txt)",
+            options=options,
+        )
         if fileName:
             self.file_open.setText(fileName)
             self.x_path = fileName
@@ -237,8 +255,13 @@ class Equation(QWidget):
     def openFileNameDialogY(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self, "QFileDialog.getOpenFileName()", "",
-                                                  "All Files (*);;Python Files (*.txt)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(
+            self,
+            "QFileDialog.getOpenFileName()",
+            "",
+            "All Files (*);;Python Files (*.txt)",
+            options=options,
+        )
         if fileName:
             self.file_y.setText(fileName)
             self.y_path = fileName
@@ -246,8 +269,13 @@ class Equation(QWidget):
     def saveFileDialog(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getSaveFileName(self, "QFileDialog.getSaveFileName()", "",
-                                                  "All Files (*);;Text Files (*.txt)", options=options)
+        fileName, _ = QFileDialog.getSaveFileName(
+            self,
+            "QFileDialog.getSaveFileName()",
+            "",
+            "All Files (*);;Text Files (*.txt)",
+            options=options,
+        )
         if fileName:
             self.file_res.setText(fileName)
         self.output_file = fileName
@@ -256,32 +284,32 @@ class Equation(QWidget):
         self.dataset_size = int(size)
 
     def polynomType(self, type_):
-        if 'Чебишева' in type_:
-            self.polynom_type = 'chebyshev'
-        elif 'Лежандра' in type_:
-            self.polynom_type = 'legendre'
-        elif 'Лаггера' in type_:
-            self.polynom_type = 'laguerre'
-        elif 'Ерміта' in type_:
-            self.polynom_type = 'hermit'
-        elif 'U' in type_:
-            self.polynom_type = 'u'
-        elif 'S' in type_:
-            self.polynom_type = 's'
-        elif 'C' in type_:
-            self.polynom_type = 'c'
-        elif 'Власний' in type_:
-            self.polynom_type = 'custom'
+        if "Чебишева" in type_:
+            self.polynom_type = "chebyshev"
+        elif "Лежандра" in type_:
+            self.polynom_type = "legendre"
+        elif "Лаггера" in type_:
+            self.polynom_type = "laguerre"
+        elif "Ерміта" in type_:
+            self.polynom_type = "hermit"
+        elif "U" in type_:
+            self.polynom_type = "u"
+        elif "S" in type_:
+            self.polynom_type = "s"
+        elif "C" in type_:
+            self.polynom_type = "c"
+        elif "Власний" in type_:
+            self.polynom_type = "custom"
         else:
-            self.polynom_type = 'chebyshev'
+            self.polynom_type = "chebyshev"
 
     def modeType(self, type_):
-        if 'Адитивна' in type_:
-            self.model_type = 'additive'
-        elif 'Мультиплікативна' in type_:
-            self.model_type = 'multiple'
-        elif 'Власна мультиплікативна' in type_:
-            self.model_type = 'our_multiple'
+        if "Адитивна" in type_:
+            self.model_type = "additive"
+        elif "Мультиплікативна" in type_:
+            self.model_type = "multiple"
+        elif "Власна мультиплікативна" in type_:
+            self.model_type = "our_multiple"
 
     def polynomicalSearch(self, state):
         if state == Qt.Checked:
@@ -291,9 +319,9 @@ class Equation(QWidget):
 
     def findLambda(self, state):
         if state == Qt.Checked:
-            self.lambda_type = 'separately'
+            self.lambda_type = "separately"
         else:
-            self.lambda_type = 'all'
+            self.lambda_type = "all"
 
     def graphNorm(self, state):
         if state == Qt.Checked:
@@ -302,35 +330,48 @@ class Equation(QWidget):
             self.norm_graph = False
 
     def typeB(self, type_):
-        if 'Середнє' in type_:
-            self.b_type = 'mean'
+        if "Середнє" in type_:
+            self.b_type = "mean"
         else:
-            self.b_type = 'norm'
+            self.b_type = "norm"
 
     def numb_y(self, numb):
         self.y_number = numb
 
     def execute(self):
-        self.x_size = [my_int(self.x1Array.text()), my_int(self.x2Array.text()), my_int(self.x3Array.text())]
+        self.x_size = [
+            my_int(self.x1Array.text()),
+            my_int(self.x2Array.text()),
+            my_int(self.x3Array.text()),
+        ]
         self.y_size = my_int(self.yArray.text())
-        self.polynom_degrees = [my_int(self.x1_power.text()), my_int(self.x2_power.text()),
-                                my_int(self.x3_power.text())]
-        if self.polynom_type == '':
-            self.polynom_type = 'chebyshev'
-        if self.lambda_type == '':
-            self.lambda_type = 'separately'
-        if self.b_type == '':
-            self.b_type = 'norm'
+        self.polynom_degrees = [
+            my_int(self.x1_power.text()),
+            my_int(self.x2_power.text()),
+            my_int(self.x3_power.text()),
+        ]
+        if self.polynom_type == "":
+            self.polynom_type = "chebyshev"
+        if self.lambda_type == "":
+            self.lambda_type = "separately"
+        if self.b_type == "":
+            self.b_type = "norm"
         if self.dataset_size == 0:
             self.dataset_size = 40
 
-        attr = {'dataset_size': int(self.dataset_size),
-                'x_path': self.x_path, 'y_path': self.y_path,
-                'x_size': self.x_size, 'y_size': self.y_size,
-                'b_type': self.b_type, 'polynom_type': self.polynom_type,
-                'polynom_degrees': self.polynom_degrees, 'polynom_search': self.polynom_search,
-                'lambda_type': self.lambda_type,
-                'output_file': self.output_file}
+        attr = {
+            "dataset_size": int(self.dataset_size),
+            "x_path": self.x_path,
+            "y_path": self.y_path,
+            "x_size": self.x_size,
+            "y_size": self.y_size,
+            "b_type": self.b_type,
+            "polynom_type": self.polynom_type,
+            "polynom_degrees": self.polynom_degrees,
+            "polynom_search": self.polynom_search,
+            "lambda_type": self.lambda_type,
+            "output_file": self.output_file,
+        }
         print("Attributes for execution:")
         print(attr)
 
@@ -348,13 +389,13 @@ class Equation(QWidget):
         print(self.content)
 
     def graphic(self):
-        if self.y_number == '':
-            self.y_number = '1'
-        attr = {'norm': self.norm_graph, 'y_number': int(self.y_number)}
+        if self.y_number == "":
+            self.y_number = "1"
+        attr = {"norm": self.norm_graph, "y_number": int(self.y_number)}
         self.model.get_plot(**attr)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     ex = Equation()
     sys.exit(app.exec_())
